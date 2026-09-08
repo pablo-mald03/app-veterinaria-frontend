@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import { 
   LayoutDashboard, 
@@ -24,8 +25,15 @@ const menuItems = [
   { name: "Recursos Humanos", href: "/rrhh", icon: Users },
 ];
 
+
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    // TODO: Borrar tokens/cookies de sesión aquí cuando conectemos el backend
+    router.push("/login");
+  };
 
   return (
     <aside className="flex w-72 flex-col justify-between border-r-2 border-[#A7E0DB]/40 bg-white shadow-lg">
@@ -62,7 +70,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="border-t border-[#A7E0DB]/40 p-4">
-        <button className="flex w-full items-center gap-4 rounded-xl px-4 py-3 font-medium text-red-500 transition-colors hover:bg-red-50">
+        <button  onClick={handleLogout} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 font-medium text-red-500 transition-colors hover:bg-red-50">
           <LogOut className="h-5 w-5" />
           Cerrar Sesión
         </button>

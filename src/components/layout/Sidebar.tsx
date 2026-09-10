@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
+import { ENDPOINTS } from "@/config/api"; 
 
 import { 
   LayoutDashboard, 
@@ -22,7 +23,7 @@ const menuItems = [
   { name: "Farmacia e Inventario", href: "/farmacia", icon: Pill },
   { name: "Gestión de Documentos", href: "/documentos", icon: Folder },
   { name: "Facturación", href: "/facturacion", icon: CreditCard },
-  { name: "Recursos Humanos", href: "/rrhh", icon: Users },
+  { name: "Recursos Humanos", href: "/dashboard/users", icon: Users },
 ];
 
 
@@ -30,9 +31,18 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  const handleLogout = () => {
-    // TODO: Borrar tokens/cookies de sesión aquí cuando conectemos el backend
-    router.push("/login");
+  const handleLogout = async () => {
+    try {
+      await fetch(ENDPOINTS.AUTH.LOGOUT, {
+        method: 'POST',
+        credentials: 'include', 
+      });
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    } finally {
+      router.push("/login");
+      router.refresh();
+    }
   };
 
   return (

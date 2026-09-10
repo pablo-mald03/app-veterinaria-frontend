@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { Mascota, Especie } from "@/types/pet";
+import { ClientResponse } from "@/types/client-api";
 
 interface PetFormModalProps {
   open: boolean;
   mascotaEditando: Mascota | null; // null = modo creación
+  clientes: ClientResponse[];
   onClose: () => void;
-  onSave: (mascota: Mascota) => void;
+  onSave: (mascota: Mascota) => Promise<void>;
 }
 
 const especies: Especie[] = ["PERRO", "GATO", "AVE", "OTRO"];
@@ -25,20 +27,32 @@ const formVacio: Omit<Mascota, "id"> = {
   description: "",
 };
 
-export default function PetFormModal({ open, mascotaEditando, onClose, onSave }: PetFormModalProps) {
+export default function PetFormModal({ open, mascotaEditando, clientes, onClose, onSave }: PetFormModalProps) {
   const [form, setForm] = useState<Omit<Mascota, "id">>(() =>
     mascotaEditando ? obtenerDatosFormulario(mascotaEditando) : formVacio,
   );
+  const [error, setError] = useState("");
 
   if (!open) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({
-      id: mascotaEditando?.id ?? crypto.randomUUID(),
-      ...form,
-    });
-    onClose();
+    setError("");
+
+    if (!form.clientId) {
+      setError("Selecciona un dueño para la mascota.");
+      return;
+    }
+
+    try {
+      await onSave({
+        id: mascotaEditando?.id ?? "",
+        ...form,
+      });
+      onClose();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "No se pudo guardar la mascota.");
+    }
   };
 
   return (
@@ -54,6 +68,7 @@ export default function PetFormModal({ open, mascotaEditando, onClose, onSave }:
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p>}
           <div className="grid grid-cols-2 gap-4">
             <Campo label="Nombre">
               <input
@@ -109,16 +124,28 @@ export default function PetFormModal({ open, mascotaEditando, onClose, onSave }:
             </Campo>
           </div>
 
-          {/* Texto libre por ahora; cuando exista un buscador real de clientes,
-              esto se reemplaza por un <select> o autocompletado contra /api/clientes */}
-          <Campo label="Dueño (nombre)">
-            <input
+          <Campo label="Dueño">
+            <select
               required
-              value={form.ownerName}
-              onChange={(e) => setForm({ ...form, ownerName: e.target.value })}
+              value={form.clientId}
+              onChange={(e) => {
+                const clientId = e.target.value;
+                const cliente = clientes.find((item) => String(item.id) === clientId);
+                setForm({
+                  ...form,
+                  clientId,
+                  ownerName: cliente ? `${cliente.firstName ?? cliente.firtsName ?? ""} ${cliente.lastName}`.trim() : "",
+                });
+              }}
               className={inputClass}
-              placeholder="Se reemplazará por un buscador de clientes reales"
-            />
+            >
+              <option value="">Selecciona un dueño</option>
+              {clientes.map((cliente) => (
+                <option key={cliente.id} value={cliente.id}>
+                  {cliente.firstName ?? cliente.firtsName ?? ""} {cliente.lastName}
+                </option>
+              ))}
+            </select>
           </Campo>
 
           <Campo label="Descripción">

@@ -1,39 +1,23 @@
 'use client';
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, Pencil, Trash2, FileText } from "lucide-react";
-import { Mascota, ConsultaExpediente, Especie } from "@/types/pet";
+import { Mascota, Especie } from "@/types/pet";
 import PetFormModal from "./PetFormModal";
 import PetExpedienteModal from "./PetExpedienteModal";
 import ConfirmDialog from "../ui/Confirmdialog";
-
-// Datos temporales mientras el backend agrega especie/peso a Pet y expone /api/mascotas
-const mockMascotas: Mascota[] = [
-  { id: "1", name: "Firulais", especie: "PERRO", breed: "Labrador", color: "Dorado", age: 3, weight: 28, clientId: "1", ownerName: "Andrea López" },
-  { id: "2", name: "Michi", especie: "GATO", breed: "Siamés", color: "Blanco", age: 2, weight: 4.2, clientId: "3", ownerName: "María Gómez" },
-];
-
-// Historial mock por mascota: representa el "expediente propio" hasta que
-// el backend defina la tabla real de historial clínico.
-const mockConsultasPorMascota: Record<string, ConsultaExpediente[]> = {
-  "1": [
-    {
-      id: "c1",
-      mascotaId: "1",
-      fecha: "2026-08-12",
-      veterinario: "Dr. Juan Pérez",
-      motivo: "Consulta general y vacunación",
-      diagnostico: "Sano",
-      pesoRegistrado: 27.5,
-    },
-  ],
-  "2": [],
-};
+import { getClients } from "@/services/clientsService";
+import { createPet, deletePet, getPets, updatePet } from "@/services/petsService";
+import { ClientResponse } from "@/types/client-api";
+import { PetRequest, PetResponse } from "@/types/pet-api";
 
 const especies: (Especie | "TODAS")[] = ["TODAS", "PERRO", "GATO", "AVE", "OTRO"];
 
 export default function PetTable() {
-  const [mascotas, setMascotas] = useState<Mascota[]>(mockMascotas);
+  const [mascotas, setMascotas] = useState<Mascota[]>([]);
+  const [clientes, setClientes] = useState<ClientResponse[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [especieFiltro, setEspecieFiltro] = useState<Especie | "TODAS">("TODAS");
 
@@ -45,6 +29,43 @@ export default function PetTable() {
 
   // Mascota pendiente de confirmar eliminación (null = diálogo cerrado)
   const [mascotaAEliminar, setMascotaAEliminar] = useState<Mascota | null>(null);
+
+  const cargarDatos = async () => {
+    setCargando(true);
+    setError("");
+    try {
+      const [petsPage, clients] = await Promise.all([getPets(), getClients()]);
+      setClientes(clients);
+      setMascotas(petsPage.content.map((pet) => mapPetToMascota(pet, clients)));
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "No se pudieron cargar los datos.");
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+
+    Promise.all([getPets(), getClients()])
+      .then(([petsPage, clients]) => {
+        if (!mounted) return;
+        setClientes(clients);
+        setMascotas(petsPage.content.map((pet) => mapPetToMascota(pet, clients)));
+      })
+      .catch((loadError: unknown) => {
+        if (mounted) {
+          setError(loadError instanceof Error ? loadError.message : "No se pudieron cargar los datos.");
+        }
+      })
+      .finally(() => {
+        if (mounted) setCargando(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const mascotasFiltradas = useMemo(() => {
     return mascotas.filter((m) => {
@@ -65,13 +86,24 @@ export default function PetTable() {
     setFormAbierto(true);
   };
 
-  // Alta y edición en memoria. Cuando exista petService.create/update,
-  // esta función pasa a hacer el fetch real y luego actualizar el estado.
-  const guardarMascota = (mascota: Mascota) => {
-    setMascotas((prev) => {
-      const existe = prev.some((m) => m.id === mascota.id);
-      return existe ? prev.map((m) => (m.id === mascota.id ? mascota : m)) : [...prev, mascota];
-    });
+  const guardarMascota = async (mascota: Mascota) => {
+    const request: PetRequest = {
+      name: mascota.name,
+      breed: mascota.breed,
+      idClient: Number(mascota.clientId),
+      color: mascota.color,
+      age: mascota.age,
+      weight: mascota.weight,
+      species: mascota.especie,
+      description: mascota.description,
+    };
+
+    if (mascotaEditando) {
+      await updatePet(Number(mascota.id), request);
+    } else {
+      await createPet(request);
+    }
+    await cargarDatos();
   };
 
   // Solo abre el diálogo; el borrado real ocurre en confirmarEliminar()
@@ -79,10 +111,15 @@ export default function PetTable() {
     setMascotaAEliminar(mascota);
   };
 
-  const confirmarEliminar = () => {
+  const confirmarEliminar = async () => {
     if (!mascotaAEliminar) return;
-    setMascotas((prev) => prev.filter((m) => m.id !== mascotaAEliminar.id));
-    setMascotaAEliminar(null);
+    try {
+      await deletePet(Number(mascotaAEliminar.id));
+      setMascotaAEliminar(null);
+      await cargarDatos();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "No se pudo eliminar la mascota.");
+    }
   };
 
   const abrirExpediente = (mascota: Mascota) => {
@@ -135,7 +172,11 @@ export default function PetTable() {
       </div>
 
       <div className="overflow-hidden rounded-2xl bg-white shadow-md">
-        {mascotasFiltradas.length === 0 ? (
+        {cargando ? (
+          <div className="p-14 text-center text-sm text-[#2A2F63]/70">Cargando mascotas...</div>
+        ) : error ? (
+          <div className="p-14 text-center text-sm text-red-600">{error}</div>
+        ) : mascotasFiltradas.length === 0 ? (
           <div className="m-4 flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[#A7E0DB] py-14 text-center">
             <p className="text-sm font-medium text-[#2A2F63]">No se encontraron mascotas</p>
             <p className="text-xs text-[#2A2F63]/60">
@@ -197,15 +238,17 @@ export default function PetTable() {
       </div>
 
       <PetFormModal
+        key={`${formAbierto}-${mascotaEditando?.id ?? "nueva"}`}
         open={formAbierto}
         mascotaEditando={mascotaEditando}
+        clientes={clientes}
         onClose={() => setFormAbierto(false)}
         onSave={guardarMascota}
       />
       <PetExpedienteModal
         open={expedienteAbierto}
         mascota={mascotaExpediente}
-        consultas={mascotaExpediente ? mockConsultasPorMascota[mascotaExpediente.id] ?? [] : []}
+        consultas={[]}
         onClose={() => setExpedienteAbierto(false)}
       />
       <ConfirmDialog
@@ -221,4 +264,20 @@ export default function PetTable() {
       />
     </div>
   );
+}
+
+function mapPetToMascota(pet: PetResponse, clientes: ClientResponse[]): Mascota {
+  const cliente = clientes.find((item) => item.id === pet.idClient);
+  return {
+    id: String(pet.idPet),
+    name: pet.name,
+    especie: pet.species as Especie,
+    breed: pet.breed,
+    color: pet.color,
+    age: pet.age,
+    weight: pet.weight,
+    clientId: String(pet.idClient),
+    ownerName: cliente ? `${cliente.firstName ?? cliente.firtsName ?? ""} ${cliente.lastName}`.trim() : undefined,
+    description: pet.description,
+  };
 }

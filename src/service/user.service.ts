@@ -7,13 +7,35 @@ export interface UserResponse extends UserFormData {
   estado?: boolean;
 }
 
+interface PaginatedResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalPages: number;
+  totalElements: number;
+}
+
 export const userService = {
-  getAll: async (): Promise<UserResponse[]> => {
-    const res = await fetch(ENDPOINTS.USERS, {
+  getAll: async (
+    page = 0,
+    size = 20,
+    sortBy = 'id',
+    direction = 'asc',
+  ): Promise<UserResponse[]> => {
+    const params = new URLSearchParams({
+      page: String(page),
+      size: String(size),
+      sortBy,
+      direction,
+    });
+
+    const res = await fetch(`${ENDPOINTS.USERS}?${params}`, {
       credentials: 'include',
     });
     if (!res.ok) throw new Error('Error al listar usuarios.');
-    return res.json();
+
+    const data: PaginatedResponse<UserResponse> = await res.json();
+    return data.content;
   },
 
   create: async (data: UserFormData): Promise<UserResponse> => {

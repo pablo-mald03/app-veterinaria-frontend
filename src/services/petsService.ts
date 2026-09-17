@@ -51,23 +51,13 @@ export async function getPetById(id: number): Promise<PetResponse> {
 }
 
 export async function createPet(pet: PetRequest): Promise<void> {
-  const formData = new FormData();
-  formData.append("name", pet.name);
-  formData.append("breed", pet.breed);
-  formData.append("idClient", String(pet.idClient));
-  formData.append("color", pet.color);
-  formData.append("age", String(pet.age));
-  formData.append("weight", String(pet.weight));
-  formData.append("species", pet.species);
-
-  if (pet.description) {
-    formData.append("description", pet.description);
-  }
-
   const response = await fetch(ENDPOINTS.PETS.CREATE, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
     credentials: "include",
-    body: formData,
+    body: JSON.stringify(pet),
   });
 
   await ensureOk(response, "No se pudo crear la mascota");

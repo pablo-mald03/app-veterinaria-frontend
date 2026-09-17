@@ -12,12 +12,14 @@ import {
   Folder, 
   CreditCard, 
   Users, 
+  Contact,
   LogOut 
 } from "lucide-react";
 
 const menuItems = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Pacientes", href: "/pacientes", icon: PawPrint },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Pacientes", href: "/dashboard/pets", icon: PawPrint },
+  { name: "Clientes", href: "/dashboard/clients", icon: Contact },
   { name: "Agenda de Citas", href: "/agenda", icon: CalendarDays },
   { name: "Farmacia e Inventario", href: "/farmacia", icon: Pill },
   { name: "Gestión de Documentos", href: "/documentos", icon: Folder },

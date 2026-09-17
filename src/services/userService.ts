@@ -9,7 +9,15 @@ export interface Role {
   active: boolean;
 }
 
-export interface UserResponse {
+interface PaginatedResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalPages: number;
+  totalElements: number;
+}
+
+export interface UserResponse extends UserFormData  {
   id: number;
   identification: string;
   name: string;
@@ -40,7 +48,7 @@ export const userService = {
     });
 
     if (!res.ok) throw new Error("Error al listar usuarios.");
-    const data = await res.json();
+    const data: PaginatedResponse<UserResponse> = await res.json();
     return data.content;
   },
 

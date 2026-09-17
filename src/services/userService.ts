@@ -32,7 +32,7 @@ export interface UserResponse extends UserFormData  {
 export const userService = {
   getAll: async (
       page: number = 0,
-      size: number = 10,
+      size: number = 20,
       sortBy: string = "id",
       direction: string = "asc"
   ): Promise<UserResponse[]> => {

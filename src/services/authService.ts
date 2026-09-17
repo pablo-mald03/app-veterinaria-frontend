@@ -45,7 +45,7 @@ export const authService = {
 
   // Recuperar Contraseña
   recoverPassword: async (data: RecoverPasswordRequestDto): Promise<void> => {
-    const res = await fetch(ENDPOINTS.AUTH.RECOVER_PASSWORD, {
+    const res = await fetch(ENDPOINTS.USERS.RECOVER_PASSWORD, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',

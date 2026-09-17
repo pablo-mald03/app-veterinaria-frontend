@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { authService } from "@/service/auth.service";
+import { authService } from "@/services/authService";
 import { AuthUserDto } from "@/types/auth";
 
 interface AuthContextValue {

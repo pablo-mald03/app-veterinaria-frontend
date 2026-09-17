@@ -8,7 +8,18 @@ export const ENDPOINTS = {
     LOGOUT: `${API_BASE_URL}/auth/logout`,
     RECOVER_PASSWORD: `${API_BASE_URL}/auth/recover-password`,
   },
-  USERS: `${API_BASE_URL}/users`,
+  
+  USERS: {
+    BASE: `${API_BASE_URL}/users`,
+    REGISTER: `${API_BASE_URL}/users/register`,
+    RECOVER_PASSWORD: `${API_BASE_URL}/users/recover-password`,
+    LIST: (params: URLSearchParams) => `${API_BASE_URL}/users?${params}`,
+    UPDATE: (id: number) => `${API_BASE_URL}/users/${id}`,
+    PUT: (id: number) => `${API_BASE_URL}/users/${id}/roles`,
+    DELETE: (id: number) => `${API_BASE_URL}/users/${id}/status`,
+    REACTIVE: (id: number) => `${API_BASE_URL}/users/${id}/status`,
+
+  },
 
   PETS: {
     LIST: `${API_BASE_URL}/pets`,
@@ -24,5 +35,9 @@ export const ENDPOINTS = {
     CREATE: `${API_BASE_URL}/clients`,
     UPDATE: (id: number) => `${API_BASE_URL}/clients/${id}`,
     DELETE: (id: number) => `${API_BASE_URL}/clients/${id}`,
+  },
+
+  ROLES: {
+    LIST: `${API_BASE_URL}/roles`,
   },
 };

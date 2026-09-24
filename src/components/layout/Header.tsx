@@ -1,6 +1,13 @@
+"use client";
+
 import Image from "next/image";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export default function Header() {
+  const { user } = useAuth();
+
+  if (!user) return null;
+
   return (
     <header className="sticky top-0 z-50 flex h-24 items-center justify-between bg-[#E3F6F5] px-8 shadow-md border-b-4 border-[#5FB0C9]">
       
@@ -33,16 +40,16 @@ export default function Header() {
       <div className="flex items-center gap-4 rounded-2xl bg-white/60 py-2 px-4 shadow-sm transition-all hover:bg-white hover:shadow-md border border-[#A7E0DB]/50">
         <div className="flex flex-col items-end">
           <p className="font-bold text-[#2A2F63]">
-            Usuario Logeado
+            {user.name}
           </p>
           <span className="rounded-full bg-[#A7E0DB]/30 px-2 py-0.5 text-xs font-semibold text-[#3E6D9C]">
-            Veterinario
+            {user.roles[0] ?? "Usuario"}
           </span>
         </div>
         
         {/* Avatar Placeholder */}
         <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#3E6D9C] text-lg font-bold text-white shadow-inner">
-          U
+          {user.name.charAt(0).toUpperCase()}
         </div>
       </div>
       

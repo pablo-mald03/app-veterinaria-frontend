@@ -1,13 +1,14 @@
 export interface UserFormData {
+  identification: string;
   name: string;
   firstName: string;
-  email: string;
+  userRegistry: string;
   phone: string;
-  username: string;
-  identification: string;
-  idRol: string;
-  password?: string;
+  email: string;
+  rawPassword?: string;   // obligatorio en creación, opcional en edición
+  roleAliases: string[];  // ej: ["admin"]
 }
+
 
 export type FormErrors = Partial<Record<keyof UserFormData | 'general', string>>;
 
@@ -31,23 +32,25 @@ export const validateUserForm = (data: UserFormData, isEditing = false): FormErr
     errors.phone = 'Mínimo 8 dígitos numéricos.';
   }
 
-  if (!data.username.trim()) {
-    errors.username = 'El usuario es obligatorio.';
-  } else if (data.username.length < 3) {
-    errors.username = 'Mínimo 3 caracteres.';
+  if (!data.userRegistry.trim()) {
+    errors.userRegistry = 'El usuario es obligatorio.';
+  } else if (data.userRegistry.length < 3) {
+    errors.userRegistry = 'Mínimo 3 caracteres.';
   }
 
   if (!data.identification.trim()) errors.identification = 'La identificación es obligatoria.';
-  if (!data.idRol) errors.idRol = 'Selecciona un rol.';
+  if (!data.roleAliases || data.roleAliases.length === 0 || !data.roleAliases[0]?.trim()) {
+    errors.roleAliases = 'Selecciona un rol.';
+  }
 
   if (!isEditing) {
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!data.password) {
-      errors.password = 'La contraseña es obligatoria.';
-    } else if (data.password.length < 8) {
-      errors.password = 'Mínimo 8 caracteres.';
-    } else if (!passwordRegex.test(data.password)) {
-      errors.password = 'Debe incluir letras y números.';
+    if (!data.rawPassword) {
+      errors.rawPassword = 'La contraseña es obligatoria.';
+    } else if (data.rawPassword.length < 8) {
+      errors.rawPassword = 'Mínimo 8 caracteres.';
+    } else if (!passwordRegex.test(data.rawPassword)) {
+      errors.rawPassword = 'Debe incluir letras y números.';
     }
   }
 

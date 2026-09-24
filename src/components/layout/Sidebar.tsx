@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRouter } from "next/navigation";
-import { ENDPOINTS } from "@/config/api"; 
+import { useAuth } from "@/components/auth/AuthProvider";
 
 import { 
   LayoutDashboard, 
@@ -13,12 +12,14 @@ import {
   Folder, 
   CreditCard, 
   Users, 
+  Contact,
   LogOut 
 } from "lucide-react";
 
 const menuItems = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Pacientes", href: "/pacientes", icon: PawPrint },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Pacientes", href: "/dashboard/pets", icon: PawPrint },
+  { name: "Clientes", href: "/dashboard/clients", icon: Contact },
   { name: "Agenda de Citas", href: "/agenda", icon: CalendarDays },
   { name: "Farmacia e Inventario", href: "/farmacia", icon: Pill },
   { name: "Gestión de Documentos", href: "/documentos", icon: Folder },
@@ -29,21 +30,7 @@ const menuItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    try {
-      await fetch(ENDPOINTS.AUTH.LOGOUT, {
-        method: 'POST',
-        credentials: 'include', 
-      });
-    } catch (error) {
-      console.error("Error al cerrar sesión:", error);
-    } finally {
-      router.push("/login");
-      router.refresh();
-    }
-  };
+  const { logout } = useAuth();
 
   return (
     <aside className="flex w-72 flex-col justify-between border-r-2 border-[#A7E0DB]/40 bg-white shadow-lg">
@@ -80,7 +67,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="border-t border-[#A7E0DB]/40 p-4">
-        <button  onClick={handleLogout} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 font-medium text-red-500 transition-colors hover:bg-red-50">
+        <button onClick={() => void logout()} className="flex w-full items-center gap-4 rounded-xl px-4 py-3 font-medium text-red-500 transition-colors hover:bg-red-50">
           <LogOut className="h-5 w-5" />
           Cerrar Sesión
         </button>

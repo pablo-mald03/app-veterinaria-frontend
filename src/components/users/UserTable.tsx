@@ -5,6 +5,9 @@ import { UserPlus, Search, Edit3, Trash2, ShieldCheck, RefreshCw } from 'lucide-
 import { userService, UserResponse } from '@/services/userService';
 import { UserFormData } from '@/schemas/user.schema';
 import UserModal from '@/components/users/userModal';
+import ConfirmDialog from '@/components/ui/Confirmdialog';
+
+type PendingAction = { type: 'deactivate' | 'reactivate'; user: UserResponse } | null;
 
 export default function UserTable() {
     const [usuarios, setUsuarios] = useState<UserResponse[]>([]);
@@ -13,6 +16,9 @@ export default function UserTable() {
 
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [editingUser, setEditingUser] = useState<UserResponse | null>(null);
+
+    // Acción pendiente de confirmación (desactivar / reactivar)
+    const [pendingAction, setPendingAction] = useState<PendingAction>(null);
 
     const cargarUsuarios = async () => {
         setLoading(true);
@@ -58,25 +64,21 @@ export default function UserTable() {
         }
     };
 
-    const handleDeleteUser = async (id: number) => {
-        if (confirm('¿Está seguro de desactivar este usuario?')) {
-            try {
-                await userService.delete(id);
-                cargarUsuarios();
-            } catch (err) {
-                alert('Error al desactivar el usuario.');
-            }
-        }
-    };
+    const handleConfirmAction = async () => {
+        if (!pendingAction) return;
+        const { type, user } = pendingAction;
+        setPendingAction(null);
 
-    const handleReactivateUser = async (id: number) => {
-        if (confirm('¿Está seguro de reactivar este usuario?')) {
-            try {
-                await userService.reactivate(id);
-                cargarUsuarios();
-            } catch (err) {
-                alert('Error al reactivar el usuario.');
+        try {
+            if (type === 'deactivate') {
+                await userService.delete(user.id);
+            } else {
+                await userService.reactivate(user.id);
             }
+            cargarUsuarios();
+        } catch (err) {
+            console.error('Error al actualizar el estado del usuario:', err);
+            alert(type === 'deactivate' ? 'Error al desactivar el usuario.' : 'Error al reactivar el usuario.');
         }
     };
 
@@ -85,6 +87,10 @@ export default function UserTable() {
             .toLowerCase()
             .includes(busqueda.toLowerCase())
     );
+
+    const nombrePendiente = pendingAction
+        ? `${pendingAction.user.name} ${pendingAction.user.firstName}`.trim()
+        : '';
 
     return (
         <div className="flex min-h-full flex-col gap-6 bg-white p-8">
@@ -188,7 +194,7 @@ export default function UserTable() {
 
                                         {u.status ? (
                                             <button
-                                                onClick={() => handleDeleteUser(u.id)}
+                                                onClick={() => setPendingAction({ type: 'deactivate', user: u })}
                                                 className="rounded-lg p-2 text-red-500 hover:bg-red-50 cursor-pointer"
                                                 title="Desactivar usuario"
                                             >
@@ -196,7 +202,7 @@ export default function UserTable() {
                                             </button>
                                         ) : (
                                             <button
-                                                onClick={() => handleReactivateUser(u.id)}
+                                                onClick={() => setPendingAction({ type: 'reactivate', user: u })}
                                                 className="rounded-lg p-2 text-green-500 hover:bg-green-50 cursor-pointer"
                                                 title="Reactivar usuario"
                                             >
@@ -217,6 +223,19 @@ export default function UserTable() {
                 editingUser={editingUser}
                 onClose={() => setIsModalOpen(false)}
                 onSubmit={handleSaveUser}
+            />
+
+            <ConfirmDialog
+                open={pendingAction !== null}
+                title={pendingAction?.type === 'deactivate' ? 'Desactivar usuario' : 'Reactivar usuario'}
+                description={
+                    pendingAction?.type === 'deactivate'
+                        ? `¿Está seguro de desactivar a ${nombrePendiente}? Ya no podrá acceder al sistema.`
+                        : `¿Está seguro de reactivar a ${nombrePendiente}? Volverá a tener acceso al sistema.`
+                }
+                confirmLabel={pendingAction?.type === 'deactivate' ? 'Desactivar' : 'Reactivar'}
+                onConfirm={handleConfirmAction}
+                onCancel={() => setPendingAction(null)}
             />
         </div>
     );

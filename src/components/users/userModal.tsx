@@ -25,6 +25,12 @@ const initialFormState: UserFormData = {
   rawPassword: '',
 };
 
+const inputStyle =
+    'w-full rounded-xl border border-[#A7E0DB] bg-white py-2 pl-9 pr-3 text-sm text-[#2A2F63] placeholder-gray-400 outline-none focus:border-[#5FB0C9]';
+
+const inputNoIconStyle =
+    'mt-1 w-full rounded-xl border border-[#A7E0DB] bg-white p-2 text-sm text-[#2A2F63] placeholder-gray-400 outline-none focus:border-[#5FB0C9]';
+
 export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: UserModalProps) {
   const [formData, setFormData] = useState<UserFormData>(initialFormState);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -136,7 +142,7 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full rounded-xl border border-[#A7E0DB] py-2 pr-3 pl-9 text-sm outline-none focus:border-[#5FB0C9]"
+                      className={inputStyle}
                   />
                 </div>
                 {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
@@ -150,7 +156,7 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
                       type="text"
                       value={formData.firstName}
                       onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                      className="w-full rounded-xl border border-[#A7E0DB] py-2 pr-3 pl-9 text-sm outline-none focus:border-[#5FB0C9]"
+                      className={inputStyle}
                   />
                 </div>
                 {errors.firstName && <p className="mt-1 text-xs text-red-500">{errors.firstName}</p>}
@@ -167,7 +173,7 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full rounded-xl border border-[#A7E0DB] py-2 pr-3 pl-9 text-sm outline-none focus:border-[#5FB0C9]"
+                      className={inputStyle}
                   />
                 </div>
                 {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
@@ -181,7 +187,7 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
                       type="text"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full rounded-xl border border-[#A7E0DB] py-2 pr-3 pl-9 text-sm outline-none focus:border-[#5FB0C9]"
+                      className={inputStyle}
                   />
                 </div>
                 {errors.phone && <p className="mt-1 text-xs text-red-500">{errors.phone}</p>}
@@ -196,7 +202,7 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
                     type="text"
                     value={formData.userRegistry}
                     onChange={(e) => setFormData({ ...formData, userRegistry: e.target.value })}
-                    className="mt-1 w-full rounded-xl border border-[#A7E0DB] p-2 text-sm outline-none focus:border-[#5FB0C9]"
+                    className={inputNoIconStyle}
                 />
                 {errors.userRegistry && <p className="mt-1 text-xs text-red-500">{errors.userRegistry}</p>}
               </div>
@@ -209,7 +215,7 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
                       type="text"
                       value={formData.identification}
                       onChange={(e) => setFormData({ ...formData, identification: e.target.value })}
-                      className="w-full rounded-xl border border-[#A7E0DB] py-2 pr-3 pl-9 text-sm outline-none focus:border-[#5FB0C9]"
+                      className={inputStyle}
                   />
                 </div>
                 {errors.identification && <p className="mt-1 text-xs text-red-500">{errors.identification}</p>}
@@ -223,11 +229,11 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
                   <select
                       value={formData.roleAliases[0] ?? ''}
                       onChange={(e) => setFormData({ ...formData, roleAliases: [e.target.value] })}
-                      className="w-full rounded-xl border border-[#A7E0DB] bg-white py-2 pr-3 pl-9 text-sm outline-none focus:border-[#5FB0C9]"
+                      className={`${inputStyle} ${formData.roleAliases[0] ? '' : 'text-gray-400'}`}
                   >
                     <option value="" disabled>Selecciona un rol</option>
                     {roles.map((r) => (
-                        <option key={r.id} value={r.alias}>
+                        <option key={r.id} value={r.alias} className="text-[#2A2F63]">
                           {r.name}
                         </option>
                     ))}
@@ -248,7 +254,7 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
                         placeholder="••••••••"
                         value={formData.rawPassword ?? ''}
                         onChange={(e) => setFormData({ ...formData, rawPassword: e.target.value })}
-                        className="w-full rounded-xl border border-[#A7E0DB] py-2 pr-3 pl-9 text-sm outline-none focus:border-[#5FB0C9]"
+                        className={inputStyle}
                     />
                   </div>
                   {errors.rawPassword && <p className="mt-1 text-xs text-red-500">{errors.rawPassword}</p>}

@@ -22,7 +22,7 @@ export const ENDPOINTS = {
   },
 
   PETS: {
-    LIST: `${API_BASE_URL}/all-pets`,
+    LIST: `${API_BASE_URL}/pets/all-pets`,
     DETAIL: (id: number) => `${API_BASE_URL}/pets/${id}`,
     CREATE: `${API_BASE_URL}/pets/create`,
     UPDATE: (id: number) => `${API_BASE_URL}/pets/${id}`,

@@ -17,20 +17,20 @@ import {
 } from "lucide-react";
 
 const menuItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Pacientes", href: "/dashboard/pets", icon: PawPrint },
-  { name: "Clientes", href: "/dashboard/clients", icon: Contact },
-  { name: "Agenda de Citas", href: "/agenda", icon: CalendarDays },
-  { name: "Farmacia e Inventario", href: "/farmacia", icon: Pill },
-  { name: "Gestión de Documentos", href: "/documentos", icon: Folder },
-  { name: "Facturación", href: "/facturacion", icon: CreditCard },
-  { name: "Recursos Humanos", href: "/dashboard/users", icon: Users },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["admin", "recepcionista", "veterinario"] },
+  { name: "Pacientes", href: "/dashboard/pets", icon: PawPrint, roles: ["admin", "recepcionista"] },
+  { name: "Clientes", href: "/dashboard/clients", icon: Contact, roles: ["admin", "recepcionista"] },
+  { name: "Agenda de Citas", href: "/agenda", icon: CalendarDays, roles: ["admin", "recepcionista", "veterinario"] },
+  { name: "Farmacia e Inventario", href: "/farmacia", icon: Pill, roles: ["admin", "recepcionista"] },
+  { name: "Gestión de Documentos", href: "/documentos", icon: Folder, roles: ["admin", "veterinario"] },
+  { name: "Facturación", href: "/facturacion", icon: CreditCard, roles: ["admin","recepcionista"] },
+  { name: "Recursos Humanos", href: "/dashboard/users", icon: Users, roles: ["admin"] },
 ];
 
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { hasRole, logout } = useAuth();
 
   return (
     <aside className="flex w-72 flex-col justify-between border-r-2 border-[#A7E0DB]/40 bg-white shadow-lg">
@@ -39,7 +39,9 @@ export default function Sidebar() {
           Menú Principal
         </p>
         <ul className="flex flex-col gap-2">
-          {menuItems.map((item) => {
+          {menuItems
+          .filter((item) => item.roles.some((role) => hasRole(role)))
+              .map((item) => {
             const isActive =
               item.href === "/"
                 ? pathname === "/"

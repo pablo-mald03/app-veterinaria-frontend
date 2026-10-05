@@ -1,51 +1,26 @@
 import { ENDPOINTS } from "@/config/api";
-import {
-  ClientRequest,
-  ClientResponse,
-} from "@/types/client-api";
-
-async function getErrorMessage(response: Response, fallback: string) {
-  try {
-    const body = await response.json();
-    return body.message || fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-async function ensureOk(response: Response, fallback: string) {
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response, fallback));
-  }
-}
+import { apiFetch } from "@/lib/api/apiFetch";
+import { ensureOk } from "@/lib/api/ensureOk";
+import { ClientRequest, ClientResponse } from "@/types/client-api";
 
 export async function getClients(): Promise<ClientResponse[]> {
-  const response = await fetch(ENDPOINTS.CLIENTS.LIST, {
-    credentials: "include",
-  });
+  const response = await apiFetch(ENDPOINTS.CLIENTS.LIST);
 
   await ensureOk(response, "No se pudieron cargar los clientes");
   return response.json();
 }
 
 export async function getClientById(id: number): Promise<ClientResponse> {
-  const response = await fetch(ENDPOINTS.CLIENTS.DETAIL(id), {
-    credentials: "include",
-  });
+  const response = await apiFetch(ENDPOINTS.CLIENTS.DETAIL(id));
 
   await ensureOk(response, "No se pudo cargar el cliente");
   return response.json();
 }
 
-export async function createClient(
-  client: ClientRequest,
-): Promise<ClientResponse> {
-  const response = await fetch(ENDPOINTS.CLIENTS.CREATE, {
+export async function createClient(client: ClientRequest): Promise<ClientResponse> {
+  const response = await apiFetch(ENDPOINTS.CLIENTS.CREATE, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(client),
   });
 
@@ -53,16 +28,10 @@ export async function createClient(
   return response.json();
 }
 
-export async function updateClient(
-  id: number,
-  client: ClientRequest,
-): Promise<ClientResponse> {
-  const response = await fetch(ENDPOINTS.CLIENTS.UPDATE(id), {
+export async function updateClient(id: number, client: ClientRequest): Promise<ClientResponse> {
+  const response = await apiFetch(ENDPOINTS.CLIENTS.UPDATE(id), {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(client),
   });
 
@@ -71,9 +40,8 @@ export async function updateClient(
 }
 
 export async function deleteClient(id: number): Promise<void> {
-  const response = await fetch(ENDPOINTS.CLIENTS.DELETE(id), {
+  const response = await apiFetch(ENDPOINTS.CLIENTS.DELETE(id), {
     method: "DELETE",
-    credentials: "include",
   });
 
   await ensureOk(response, "No se pudo eliminar el cliente");

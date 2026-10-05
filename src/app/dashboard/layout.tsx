@@ -2,7 +2,9 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Sidebar from "@/components/layout/Sidebar";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import RouteGuard from "@/components/auth/RouteGuard";
 
+/*Function for the dashboard layout */
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
@@ -10,7 +12,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Header />
         <div className="flex flex-1">
           <Sidebar />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1">
+            <RouteGuard>{children}</RouteGuard>
+          </main>
         </div>
         <Footer />
       </div>

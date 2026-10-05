@@ -2,35 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
-
-import { 
-  LayoutDashboard, 
-  PawPrint, 
-  CalendarDays, 
-  Pill, 
-  Folder, 
-  CreditCard, 
-  Users, 
-  Contact,
-  LogOut 
-} from "lucide-react";
-
-const menuItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["admin", "recepcionista", "veterinario"] },
-  { name: "Pacientes", href: "/dashboard/pets", icon: PawPrint, roles: ["admin", "recepcionista"] },
-  { name: "Clientes", href: "/dashboard/clients", icon: Contact, roles: ["admin", "recepcionista"] },
-  { name: "Agenda de Citas", href: "/agenda", icon: CalendarDays, roles: ["admin", "recepcionista", "veterinario"] },
-  { name: "Farmacia e Inventario", href: "/farmacia", icon: Pill, roles: ["admin", "recepcionista"] },
-  { name: "Gestión de Documentos", href: "/documentos", icon: Folder, roles: ["admin", "veterinario"] },
-  { name: "Facturación", href: "/facturacion", icon: CreditCard, roles: ["admin","recepcionista"] },
-  { name: "Recursos Humanos", href: "/dashboard/users", icon: Users, roles: ["admin"] },
-];
-
+import { NAV_ITEMS } from "@/config/navigation";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { hasRole, logout } = useAuth();
+  const { hasPermission, logout } = useAuth();
 
   return (
     <aside className="flex w-72 flex-col justify-between border-r-2 border-[#A7E0DB]/40 bg-white shadow-lg">
@@ -39,32 +17,31 @@ export default function Sidebar() {
           Menú Principal
         </p>
         <ul className="flex flex-col gap-2">
-          {menuItems
-          .filter((item) => item.roles.some((role) => hasRole(role)))
-              .map((item) => {
-            const isActive =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname === item.href || pathname?.startsWith(`${item.href}/`);
+          {NAV_ITEMS
+            .filter((item) => item.permission === null || hasPermission(item.permission))
+            .map((item) => {
+              const isActive =
+                item.href === "/dashboard"
+                  ? pathname === "/dashboard"
+                  : pathname === item.href || pathname?.startsWith(`${item.href}/`);
 
-            const IconComponent = item.icon;
+              const IconComponent = item.icon;
 
-            return (
-              <li key={item.name}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-4 rounded-xl px-4 py-3 transition-all duration-200 ${
-                    isActive
-                      ? "bg-[#5FB0C9] text-white shadow-md font-semibold"
-                      : "text-[#2A2F63] hover:bg-[#E3F6F5] hover:text-[#3E6D9C] font-medium"
-                  }`}
-                >
-                  <IconComponent className={`h-5 w-5 ${isActive ? "text-white" : "text-[#2A2F63] opacity-80"}`} />
-                  {item.name}
-                </Link>
-              </li>
-            );
-          })}
+              return (
+                <li key={item.name}>
+                  <Link
+                    href={item.href}
+                    className={`flex items-center gap-4 rounded-xl px-4 py-3 transition-all duration-200 ${isActive
+                        ? "bg-[#5FB0C9] text-white shadow-md font-semibold"
+                        : "text-[#2A2F63] hover:bg-[#E3F6F5] hover:text-[#3E6D9C] font-medium"
+                      }`}
+                  >
+                    <IconComponent className={`h-5 w-5 ${isActive ? "text-white" : "text-[#2A2F63] opacity-80"}`} />
+                    {item.name}
+                  </Link>
+                </li>
+              );
+            })}
         </ul>
       </nav>
 

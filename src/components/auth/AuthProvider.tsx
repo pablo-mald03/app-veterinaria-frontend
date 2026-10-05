@@ -10,6 +10,8 @@ interface AuthContextValue {
   loading: boolean;
   hasRole: (role: string) => boolean;
   hasPermission: (permission: string) => boolean;
+  hasAnyPermission: (permissions: string[]) => boolean;
+  hasAllPermissions: (permissions: string[]) => boolean;
   logout: () => Promise<void>;
 }
 
@@ -47,6 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     hasRole: (role) => Boolean(user?.roles.some((item) => item.toUpperCase() === role.toUpperCase())),
     hasPermission: (permission) => Boolean(user?.permissions.includes(permission)),
+    hasAnyPermission: (permissions) => permissions.some((item) => Boolean(user?.permissions.includes(item))),
+    hasAllPermissions: (permissions) => permissions.every((item) => Boolean(user?.permissions.includes(item))),
     logout: async () => {
       await authService.logout();
       setUser(null);

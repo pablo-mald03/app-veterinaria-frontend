@@ -1,142 +1,86 @@
-import { ENDPOINTS } from '@/config/api';
-import { UserFormData } from '@/schemas/user.schema';
+import { ENDPOINTS } from "@/config/api";
+import { apiFetch } from "@/lib/api/apiFetch";
+import { ensureOk } from "@/lib/api/ensureOk";
+import { UserFormData } from "@/schemas/user.schema";
+import { Page } from "@/types/pagination";
+import { UserResponse } from "@/types/users/user";
 
-export interface Role {
-  id: number;
-  alias: string;
-  name: string;
-  description: string;
-  active: boolean;
+export type { UserResponse } from "@/types/users/user";
+export type { Role } from "@/types/role";
+
+const JSON_HEADERS = { "Content-Type": "application/json" };
+
+async function setStatus(id: number, status: boolean, fallback: string): Promise<void> {
+  const response = await apiFetch(ENDPOINTS.USERS.DELETE(id), {
+    method: "PATCH",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ status }),
+  });
+
+  await ensureOk(response, fallback);
 }
 
-interface PaginatedResponse<T> {
-  content: T[];
-  page: number;
-  size: number;
-  totalPages: number;
-  totalElements: number;
-}
-
-export interface UserResponse extends UserFormData  {
-  id: number;
-  identification: string;
-  name: string;
-  firstName: string;
-  phone: string;
-  userRegistry: string;
-  email: string;
-  status: boolean;
-  roles: Role[];
-}
-
+//Principal user service
 export const userService = {
   getAll: async (
-      page: number = 0,
-      size: number = 20,
-      sortBy: string = "id",
-      direction: string = "asc"
+    page: number = 0,
+    size: number = 20,
+    sortBy: string = "id",
+    direction: string = "asc",
   ): Promise<UserResponse[]> => {
-    const params = new URLSearchParams({
-      page: String(page),
-      size: String(size),
-      sortBy,
-      direction,
-    });
+    const params = new URLSearchParams({ page: String(page), size: String(size), sortBy, direction });
+    const response = await apiFetch(ENDPOINTS.USERS.LIST(params));
 
-    const res = await fetch(ENDPOINTS.USERS.LIST(params), {
-      credentials: "include",
-    });
-
-    if (!res.ok) throw new Error("Error al listar usuarios.");
-    const data: PaginatedResponse<UserResponse> = await res.json();
+    await ensureOk(response, "Error al listar usuarios.");
+    const data: Page<UserResponse> = await response.json();
     return data.content;
   },
 
-  // Creación
   create: async (data: UserFormData): Promise<UserResponse> => {
-    const res = await fetch(ENDPOINTS.USERS.REGISTER, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+    const response = await apiFetch(ENDPOINTS.USERS.REGISTER, {
+      method: "POST",
+      headers: JSON_HEADERS,
       body: JSON.stringify(data),
     });
 
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => null);
-      console.error('Detalle del error Backend:', errorData);
-
-      const errorMessage = errorData?.message || (errorData?.errors
-          ? JSON.stringify(errorData.errors)
-          : 'Error en la validación de datos.');
-
-      throw new Error(errorMessage);
-    }
-    return res.json();
+    await ensureOk(response, "Error en la validación de datos.");
+    return response.json();
   },
 
-  // Actualización de datos de perfil
   update: async (id: number, data: Partial<UserFormData>): Promise<UserResponse> => {
-    const res = await fetch(ENDPOINTS.USERS.UPDATE(id), {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+    const response = await apiFetch(ENDPOINTS.USERS.UPDATE(id), {
+      method: "PATCH",
+      headers: JSON_HEADERS,
       body: JSON.stringify(data),
     });
 
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Error al actualizar los datos');
-    }
-    return res.json();
+    await ensureOk(response, "Error al actualizar los datos.");
+    return response.json();
   },
 
-  // Actualización de roles
   updateUserRoles: async (id: number, roleAliases: string[]): Promise<UserResponse> => {
-    const res = await fetch(ENDPOINTS.USERS.PUT(id), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+    const response = await apiFetch(ENDPOINTS.USERS.PUT(id), {
+      method: "PUT",
+      headers: JSON_HEADERS,
       body: JSON.stringify({ roleAliases }),
     });
 
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Error al actualizar los roles');
-    }
-
-    return res.json();
+    await ensureOk(response, "Error al actualizar los roles.");
+    return response.json();
   },
 
-  // Desactivación
-  delete: async (id: number): Promise<void> => {
-    const res = await fetch(ENDPOINTS.USERS.DELETE(id), {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ status: false }),
-    });
-    if (!res.ok) throw new Error('Error al desactivar usuario.');
-  },
+  delete: (id: number): Promise<void> => setStatus(id, false, "Error al desactivar usuario."),
 
-  // Reactivación
-  reactivate: async (id: number): Promise<void> => {
-    const res = await fetch(ENDPOINTS.USERS.REACTIVE(id), {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ status: true }),
-    });
-    if (!res.ok) throw new Error('Error al reactivar usuario.');
-  },
+  reactivate: (id: number): Promise<void> => setStatus(id, true, "Error al reactivar usuario."),
 
-  // Recuperación de contraseña
   recoverPassword: async (data: { email: string }): Promise<void> => {
-    const res = await fetch(ENDPOINTS.USERS.RECOVER_PASSWORD, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+    const response = await fetch(ENDPOINTS.USERS.RECOVER_PASSWORD, {
+      method: "POST",
+      headers: JSON_HEADERS,
+      credentials: "include",
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Error al solicitar recuperación de contraseña.');
+
+    await ensureOk(response, "Error al solicitar recuperación de contraseña.");
   },
 };

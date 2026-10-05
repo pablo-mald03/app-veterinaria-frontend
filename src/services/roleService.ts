@@ -1,36 +1,21 @@
-import { ENDPOINTS } from '@/config/api';
+import { ENDPOINTS } from "@/config/api";
+import { apiFetch } from "@/lib/api/apiFetch";
+import { ensureOk } from "@/lib/api/ensureOk";
+import { Page } from "@/types/pagination";
+import { Role } from "@/types/role";
 
-export interface Role {
-    id: number;
-    alias: string;
-    name: string;
-    description?: string;
-    active?: boolean;
-}
+export type { Role } from "@/types/role";
 
-export interface PaginatedRolesResponse {
-    content: Role[];
-    page: number;
-    size: number;
-    totalPages: number;
-    totalElements: number;
-}
-
+//Role service
 export const roleService = {
-    getAll: async () => {
-        const url = new URL(ENDPOINTS.ROLES.LIST, window.location.origin);
-        url.searchParams.append('page', '0');
-        url.searchParams.append('size', '50');
 
-        const res = await fetch(url.toString(), {
-            credentials: 'include'
-        });
+    //Get all fetching endpoint
+    getAll: async (): Promise<Role[]> => {
+        const params = new URLSearchParams({ page: "0", size: "50" });
+        const response = await apiFetch(`${ENDPOINTS.ROLES.LIST}?${params}`);
 
-        if (!res.ok) {
-            throw new Error(`Error al obtener roles. Status: ${res.status}`);
-        }
-
-        const data = await res.json();
-        return data.content ?? []; // Retorna el array del objeto paginado
+        await ensureOk(response, "Error al obtener roles.");
+        const data: Page<Role> = await response.json();
+        return data.content ?? [];
     },
 };

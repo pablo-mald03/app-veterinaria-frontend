@@ -1,7 +1,7 @@
 "use client";
 
 import { Info, CheckCircle2, AlertTriangle, XCircle, X } from "lucide-react";
-import { useToast } from "@/components/ui/toast/ToastProvider";
+import { useToast, useToastState } from "@/components/ui/toast/ToastProvider";
 import { ToastVariant } from "@/types/toast/toast";
 import { useState } from "react";
 import { TOAST_CLOSE, TOAST_SURFACE } from "./types/toastVariants";
@@ -17,7 +17,8 @@ const ICONS: Record<ToastVariant, React.ComponentType<{ className?: string }>> =
 
 //Toast container component
 export default function ToastContainer() {
-    const { toasts, remove } = useToast();
+    const { toasts } = useToastState();
+    const { remove } = useToast();
     const [hovered, setHovered] = useState(false);
 
     if (toasts.length === 0) return null;

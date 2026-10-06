@@ -1,14 +1,20 @@
 "use client";
 
 import { Toast, ToastInput } from "@/types/toast/toast";
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 
 const MAX_TOASTS = 5;
 const AUTO_DISMISS_MS = 5000;
 
-//Toast props directive
-interface ToastContextValue {
-    toasts: Toast[];
+// --- Contexto de ACCIONES (referencia estable) ---
+interface ToastActions {
     show: (toast: ToastInput) => string;
     remove: (id: string) => void;
     success: (message: string, title?: string) => string;
@@ -17,7 +23,14 @@ interface ToastContextValue {
     warning: (message: string, title?: string) => string;
 }
 
-const ToastContext = createContext<ToastContextValue | null>(null);
+const ToastActionsContext = createContext<ToastActions | null>(null);
+
+//Toast state
+interface ToastState {
+    toasts: Toast[];
+}
+
+const ToastStateContext = createContext<ToastState | null>(null);
 
 //Toast provider component
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -46,9 +59,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         [remove]
     );
 
-    const value = useMemo<ToastContextValue>(
+    const actions = useMemo<ToastActions>(
         () => ({
-            toasts,
             show,
             remove,
             success: (message, title) => show({ message, title, variant: "success" }),
@@ -56,14 +68,30 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             info: (message, title) => show({ message, title, variant: "info" }),
             warning: (message, title) => show({ message, title, variant: "warning" }),
         }),
-        [toasts, show, remove]
+        [show, remove]
     );
 
-    return <ToastContext.Provider value={value}>{children}</ToastContext.Provider>;
+    const state = useMemo<ToastState>(() => ({ toasts }), [toasts]);
+
+    return (
+        <ToastActionsContext.Provider value={actions}>
+            <ToastStateContext.Provider value={state}>
+                {children}
+            </ToastStateContext.Provider>
+        </ToastActionsContext.Provider>
+    );
 }
 
-export function useToast() {
-    const ctx = useContext(ToastContext);
+// Hook for components
+export function useToast(): ToastActions {
+    const ctx = useContext(ToastActionsContext);
     if (!ctx) throw new Error("useToast debe usarse dentro de <ToastProvider>.");
+    return ctx;
+}
+
+// Hook for the toast container
+export function useToastState(): ToastState {
+    const ctx = useContext(ToastStateContext);
+    if (!ctx) throw new Error("useToastState debe usarse dentro de <ToastProvider>.");
     return ctx;
 }

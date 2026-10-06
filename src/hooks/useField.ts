@@ -53,7 +53,6 @@ export function useField({ initialValue = "", validator, validateOn = "blur", tr
         setValue: change,
         validate,
         reset,
-        /** Para esparcir directo en <TextField {...field.props} /> */
         props: { value, error, onValueChange: change, onBlur: blur },
     };
 }

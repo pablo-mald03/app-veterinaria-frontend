@@ -1,59 +1,76 @@
 'use client';
 
-import { AlertTriangle, X } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, Info, X } from "lucide-react";
+import Button from "@/components/ui/Button";
+import Modal from "@/components/ui/Modal";
+
+type ConfirmVariant = "danger" | "warning" | "info";
+
+const VARIANTS = {
+  danger: { icon: AlertTriangle, iconWrap: "bg-danger-soft text-danger", button: "danger" },
+  warning: { icon: AlertTriangle, iconWrap: "bg-warning/10 text-warning", button: "primary" },
+  info: { icon: Info, iconWrap: "bg-mint text-accent", button: "primary" },
+} as const;
 
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
-  description: string;
+  description: React.ReactNode;
+  variant?: ConfirmVariant;
+  icon?: React.ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
-  onConfirm: () => void;
+  loading?: boolean;
+  onConfirm: () => void | Promise<void>;
   onCancel: () => void;
 }
 
-// acción destructiva: eliminar mascota, usuario, cita, etc.
+//Confirmation dialog component modal
 export default function ConfirmDialog({
   open,
   title,
   description,
+  variant = "danger",
+  icon,
   confirmLabel = "Eliminar",
   cancelLabel = "Cancelar",
+  loading = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  if (!open) return null;
+  const [pending, setPending] = useState(false);
+  const busy = loading || pending;
+  const styles = VARIANTS[variant];
+  const Icon = styles.icon;
+
+  const handleConfirm = async () => {
+    setPending(true);
+    try {
+      await onConfirm();
+    } finally {
+      setPending(false);
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-        <div className="flex items-start justify-between">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-500">
-            <AlertTriangle className="h-5 w-5" />
-          </div>
-          <button onClick={onCancel} className="rounded-lg p-1 text-text/60 hover:bg-mint">
-            <X className="h-5 w-5" />
-          </button>
+    <Modal open={open} onClose={onCancel} size="sm" ariaLabel={title} dismissible={!busy}>
+      <div className="flex items-start justify-between">
+        <div className={`flex h-10 w-10 items-center justify-center rounded-full ${styles.iconWrap}`}>
+          {icon ?? <Icon className="h-5 w-5" />}
         </div>
-
-        <h2 className="mt-4 text-lg font-bold text-text">{title}</h2>
-        <p className="mt-1 text-sm text-text/70">{description}</p>
-
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            onClick={onCancel}
-            className="rounded-xl px-4 py-2 text-sm font-semibold text-text hover:bg-mint"
-          >
-            {cancelLabel}
-          </button>
-          <button
-            onClick={onConfirm}
-            className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow-md hover:bg-red-600"
-          >
-            {confirmLabel}
-          </button>
-        </div>
+        <button type="button" onClick={onCancel} disabled={busy} aria-label="Cerrar" className="cursor-pointer rounded-lg p-1 text-text/60 transition-colors hover:bg-mint disabled:opacity-50">
+          <X className="h-5 w-5" />
+        </button>
       </div>
-    </div>
+
+      <h2 className="mt-4 text-lg font-bold text-text">{title}</h2>
+      <div className="mt-1 text-sm text-text/70">{description}</div>
+
+      <div className="mt-6 flex justify-end gap-3">
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={busy} autoFocus>{cancelLabel}</Button>
+        <Button type="button" variant={styles.button} onClick={handleConfirm} loading={busy} loadingLabel="Procesando...">{confirmLabel}</Button>
+      </div>
+    </Modal>
   );
 }

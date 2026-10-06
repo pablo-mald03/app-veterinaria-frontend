@@ -8,4 +8,4 @@ export const loginPasswordSchema = z.string().min(1, "La contraseña es obligato
 
 export const newPasswordSchema = z.string().min(6, "La contraseña debe tener al menos 6 caracteres.");
 
-export const dpiSchema = z.string().min(1, "El DPI es obligatorio.").min(13, "El DPI debe contener 13 dígitos.").max(13, "El DPI debe contener 13 dígitos.");
+export const dpiSchema = z.string().min(1, "El DPI es obligatorio.").length(13, "El DPI debe tener exactamente 13 dígitos.");

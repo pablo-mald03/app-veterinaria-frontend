@@ -6,9 +6,9 @@ import { IdCard, KeyRound, Lock, Mail } from "lucide-react";
 import { authService } from "@/services/authService";
 import { useField } from "@/hooks/useField";
 import { dpiSchema, emailSchema, newPasswordSchema } from "@/schemas/auth.schema";
-import Alert from "@/components/ui/Alert";
-import Button from "@/components/ui/Button";
-import TextField from "@/components/ui/TextField";
+import Alert from "@/components/ui/common/Alert";
+import Button from "@/components/ui/common/Button";
+import TextField from "@/components/ui/common/TextField";
 import { digitsOnly } from "@/lib/forms/transform";
 
 //Recover password form

@@ -1,7 +1,7 @@
 // src/components/users/UserModal.tsx
 "use client";
 
-import Modal from "@/components/ui/Modal";
+import Modal from "@/components/ui/common/Modal";
 import UserForm from "@/components/users/UserForm";
 import type { UserFormData } from "@/schemas/user.schema";
 import type { UserResponse } from "@/services/userService";

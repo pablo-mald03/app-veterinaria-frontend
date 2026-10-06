@@ -2,10 +2,10 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
-import FieldMessage from "@/components/ui/FieldMessage";
-import Spinner from "@/components/ui/Spinner";
+import FieldMessage from "@/components/ui/common/FieldMessage";
+import Spinner from "@/components/ui/common/Spinner";
 import { useClickOutside } from "@/hooks/useClickOutside";
-import { FIELD_STYLES, type FieldVariant } from "./types/fieldVariants";
+import { FIELD_STYLES, type FieldVariant } from "../types/fieldVariants";
 
 export interface DropdownOption {
     value: string;

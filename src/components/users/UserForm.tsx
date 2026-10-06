@@ -3,9 +3,9 @@
 
 import { useEffect, useState } from "react";
 import { AtSign, IdCard, Lock, Mail, Phone, Shield, User } from "lucide-react";
-import Button from "@/components/ui/Button";
-import Dropdown from "@/components/ui/Dropdown";
-import TextField from "@/components/ui/TextField";
+import Button from "@/components/ui/common/Button";
+import Dropdown from "@/components/ui/common/Dropdown";
+import TextField from "@/components/ui/common/TextField";
 import { useField } from "@/hooks/useField";
 import { roleService } from "@/services/roleService";
 import type { Role } from "@/types/role";

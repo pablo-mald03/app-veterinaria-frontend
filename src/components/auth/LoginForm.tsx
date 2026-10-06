@@ -6,15 +6,20 @@ import { LogIn, Lock, Mail } from "lucide-react";
 import { authService } from "@/services/authService";
 import { useField } from "@/hooks/useField";
 import { emailSchema, loginPasswordSchema } from "@/schemas/auth.schema";
-import Alert from "@/components/ui/Alert";
-import Button from "@/components/ui/Button";
-import TextField from "@/components/ui/TextField";
+import Alert from "@/components/ui/common/Alert";
+import Button from "@/components/ui/common/Button";
+import TextField from "@/components/ui/common/TextField";
+import { getGreeting } from "@/lib/greet/greeting";
+import { useToast } from "../ui/toast/ToastProvider";
 
 //Login form component
 export default function LoginForm() {
   const router = useRouter();
+  const toast = useToast();
+
   const email = useField({ validator: emailSchema, validateOn: "submit" });
   const password = useField({ validator: loginPasswordSchema, validateOn: "submit" });
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -29,9 +34,18 @@ export default function LoginForm() {
 
     try {
       await authService.login({ email: email.value, password: password.value });
+
+      const { text } = getGreeting();
+
+      toast.success("Acceso exitoso", `${text}, bienvenido de nuevo`);
+
       router.push("/dashboard");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Credenciales inválidas. Intenta de nuevo.");
+      const message =
+        err instanceof Error ? err.message : "Credenciales inválidas. Intenta de nuevo.";
+
+      setError(message);
+      toast.error(message, "Error de autenticación");
       setLoading(false);
     }
   };
@@ -40,11 +54,32 @@ export default function LoginForm() {
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
       {error && <Alert variant="error">{error}</Alert>}
 
-      <TextField label="Correo Electrónico" type="email" autoComplete="email" placeholder="ejemplo@happypets.com" icon={<Mail />} clearable {...email.props} />
+      <TextField
+        label="Correo Electrónico"
+        type="email"
+        autoComplete="email"
+        placeholder="ejemplo@happypets.com"
+        icon={<Mail />}
+        clearable
+        {...email.props}
+      />
 
-      <TextField label="Contraseña" type="password" autoComplete="current-password" placeholder="••••••••" icon={<Lock />} {...password.props} />
+      <TextField
+        label="Contraseña"
+        type="password"
+        autoComplete="current-password"
+        placeholder="••••••••"
+        icon={<Lock />}
+        {...password.props}
+      />
 
-      <Button type="submit" loading={loading} loadingLabel="Iniciando sesión..." icon={<LogIn className="h-5 w-5" />} className="mt-2 w-full py-3">
+      <Button
+        type="submit"
+        loading={loading}
+        loadingLabel="Iniciando sesión..."
+        icon={<LogIn className="h-5 w-5" />}
+        className="mt-2 w-full py-3"
+      >
         Iniciar Sesión
       </Button>
     </form>

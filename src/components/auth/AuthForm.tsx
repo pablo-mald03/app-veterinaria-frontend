@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import LoginForm from "@/components/auth/LoginForm";
 import RecoverPasswordForm from "@/components/auth/RecoverPasswordForm";
-import SegmentedTabs from "@/components/ui/SegmentedTabs";
+import SegmentedTabs from "@/components/ui/common/SegmentedTabs";
 
 type AuthTab = "login" | "recover";
 

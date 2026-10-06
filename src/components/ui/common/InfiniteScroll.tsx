@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Spinner from "@/components/ui/Spinner";
+import Spinner from "@/components/ui/common/Spinner";
 
 interface InfiniteScrollProps {
     onLoadMore: () => void;

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { AlertTriangle, Info, X } from "lucide-react";
-import Button from "@/components/ui/Button";
-import Modal from "@/components/ui/Modal";
+import Button from "@/components/ui/common/Button";
+import Modal from "@/components/ui/common/Modal";
 
 type ConfirmVariant = "danger" | "warning" | "info";
 

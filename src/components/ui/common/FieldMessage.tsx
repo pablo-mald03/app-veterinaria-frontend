@@ -1,5 +1,5 @@
 import { AlertCircle, AlertTriangle, CheckCircle2, Info } from "lucide-react";
-import { FIELD_STYLES, type FieldVariant } from "./types/fieldVariants";
+import { FIELD_STYLES, type FieldVariant } from "../types/fieldVariants";
 
 const ICONS = { error: AlertCircle, warning: AlertTriangle, info: Info, success: CheckCircle2 } as const;
 

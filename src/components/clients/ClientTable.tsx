@@ -1,13 +1,37 @@
-'use client';
+// src/components/clients/ClientTable.tsx
+"use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
-import ClientFormModal from "./ClientFormModal";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import ClientModal from "@/components/clients/ClientModal";
+import { useToast } from "@/components/ui/toast/ToastProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
+import {
+  createClient,
+  deleteClient,
+  getClients,
+  updateClient,
+} from "@/services/clientsService";
+import type { ClientRequest, ClientResponse } from "@/types/client-api";
 import ConfirmDialog from "../ui/Confirmdialog";
-import { createClient, deleteClient, getClients, updateClient } from "@/services/clientsService";
-import { ClientRequest, ClientResponse } from "@/types/client-api";
+
+// Helper: maneja el typo histórico "firtsName" del backend
+function getFirstName(client: ClientResponse): string {
+  return client.firstName ?? client.firtsName ?? "";
+}
+
+function getFullName(client: ClientResponse): string {
+  return `${getFirstName(client)} ${client.lastName}`.trim();
+}
 
 export default function ClientTable() {
+  const toast = useToast();
+  const { hasPermission } = useAuth();
+
+  const canCreate = hasPermission("clientes:crear");
+  const canEdit = hasPermission("clientes:editar");
+  const canDelete = hasPermission("clientes:eliminar");
+
   const [clientes, setClientes] = useState<ClientResponse[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
@@ -16,49 +40,35 @@ export default function ClientTable() {
   const [formAbierto, setFormAbierto] = useState(false);
   const [clienteEditando, setClienteEditando] = useState<ClientResponse | null>(null);
 
-  // Cliente pendiente de confirmar eliminación (null = diálogo cerrado)
   const [clienteAEliminar, setClienteAEliminar] = useState<ClientResponse | null>(null);
 
-  const cargarDatos = async () => {
+  const cargarDatos = useCallback(async () => {
     setCargando(true);
     setError("");
     try {
       const clients = await getClients();
       setClientes(clients);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "No se pudieron cargar los clientes.");
+      const message =
+        loadError instanceof Error
+          ? loadError.message
+          : "No se pudieron cargar los clientes.";
+      setError(message);
+      toast.error(message, "Error al cargar clientes");
     } finally {
       setCargando(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
-    let mounted = true;
-
-    getClients()
-      .then((clients) => {
-        if (!mounted) return;
-        setClientes(clients);
-      })
-      .catch((loadError: unknown) => {
-        if (mounted) {
-          setError(loadError instanceof Error ? loadError.message : "No se pudieron cargar los clientes.");
-        }
-      })
-      .finally(() => {
-        if (mounted) setCargando(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    void cargarDatos();
+  }, [cargarDatos]);
 
   const clientesFiltrados = useMemo(() => {
+    const query = busqueda.toLowerCase();
     return clientes.filter((c) => {
-      const nombre = `${c.firstName ?? c.firtsName ?? ""} ${c.lastName}`.toLowerCase();
-      const texto = `${nombre} ${c.dpi} ${c.email ?? ""}`.toLowerCase();
-      return texto.includes(busqueda.toLowerCase());
+      const texto = `${getFullName(c)} ${c.dpi} ${c.email ?? ""}`.toLowerCase();
+      return texto.includes(query);
     });
   }, [clientes, busqueda]);
 
@@ -72,51 +82,79 @@ export default function ClientTable() {
     setFormAbierto(true);
   };
 
-  const guardarCliente = async (cliente: ClientRequest) => {
-    if (clienteEditando) {
-      await updateClient(clienteEditando.id, cliente);
-    } else {
-      await createClient(cliente);
-    }
-    await cargarDatos();
-  };
+  const cerrarModal = () => setFormAbierto(false);
 
-  // Solo abre el diálogo; el borrado real ocurre en confirmarEliminar()
-  const pedirConfirmacionEliminar = (cliente: ClientResponse) => {
-    setClienteAEliminar(cliente);
+  const guardarCliente = async (data: ClientRequest) => {
+    try {
+      if (clienteEditando) {
+        await updateClient(clienteEditando.id, data);
+        toast.success("Cliente actualizado", getFullName(clienteEditando));
+      } else {
+        await createClient(data);
+        toast.success("Cliente registrado", `${data.firstName} ${data.lastName}`.trim());
+      }
+      setFormAbierto(false);
+      await cargarDatos();
+    } catch (saveError) {
+      // Re-lanzamos para que ClientForm lo muestre en su Alert y bloquee el cierre
+      const message =
+        saveError instanceof Error
+          ? saveError.message
+          : "No se pudo guardar el cliente.";
+      toast.error(message, "Error al guardar");
+      throw saveError;
+    }
   };
 
   const confirmarEliminar = async () => {
     if (!clienteAEliminar) return;
+
     try {
       await deleteClient(clienteAEliminar.id);
+      toast.warning(`${getFullName(clienteAEliminar)} eliminado`, "Cliente removido");
       setClienteAEliminar(null);
       await cargarDatos();
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "No se pudo eliminar el cliente.");
+      const message =
+        deleteError instanceof Error
+          ? deleteError.message
+          : "No se pudo eliminar el cliente.";
+      toast.error(message, "Error al eliminar");
+      // No cerramos el dialog: se queda abierto con el spinner apagado
+      // para que el usuario pueda reintentar o cancelar.
+      throw deleteError;
     }
   };
 
+  const nombreAEliminar = clienteAEliminar ? getFullName(clienteAEliminar) : "";
+
   return (
     <div className="flex min-h-full flex-col gap-8 bg-white p-8">
+      {/* Header con RBAC */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-text" style={{ fontFamily: "'Young Serif', serif" }}>
+          <h1
+            className="text-3xl font-bold text-text"
+            style={{ fontFamily: "'Young Serif', serif" }}
+          >
             Clientes
           </h1>
-          <p className="mt-1 text-sm text-text/70">
-            Dueños registrados en el sistema.
-          </p>
+          <p className="mt-1 text-sm text-text/70">Dueños registrados en el sistema.</p>
         </div>
-        <button
-          onClick={abrirCrear}
-          className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-white shadow-md transition-colors hover:bg-accent"
-        >
-          <Plus className="h-5 w-5" />
-          Nuevo Cliente
-        </button>
+
+        {canCreate && (
+          <button
+            type="button"
+            onClick={abrirCrear}
+            className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-white shadow-md transition-colors hover:bg-accent"
+          >
+            <Plus className="h-5 w-5" />
+            Nuevo Cliente
+          </button>
+        )}
       </div>
 
+      {/* Buscador */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text/50" />
@@ -130,6 +168,7 @@ export default function ClientTable() {
         </div>
       </div>
 
+      {/* Tabla */}
       <div className="overflow-hidden rounded-2xl bg-white shadow-md">
         {cargando ? (
           <div className="p-14 text-center text-sm text-text/70">Cargando clientes...</div>
@@ -152,60 +191,76 @@ export default function ClientTable() {
                   <th className="px-6 py-3">Teléfono</th>
                   <th className="px-6 py-3">Correo</th>
                   <th className="px-6 py-3">Dirección</th>
-                  <th className="px-6 py-3 text-right">Acciones</th>
+                  {(canEdit || canDelete) && (
+                    <th className="px-6 py-3 text-right">Acciones</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-mint">
-                {clientesFiltrados.map((c) => (
-                  <tr key={c.id} className="transition-colors hover:bg-mint/40">
-                    <td className="px-6 py-4 font-medium text-text">
-                      {c.firstName ?? c.firtsName ?? ""} {c.lastName}
-                    </td>
-                    <td className="px-6 py-4 text-text/80">{c.dpi}</td>
-                    <td className="px-6 py-4 text-text/80">{c.phone || "—"}</td>
-                    <td className="px-6 py-4 text-text/80">{c.email || "—"}</td>
-                    <td className="px-6 py-4 text-text/80">{c.address || "—"}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => abrirEditar(c)}
-                          className="rounded-lg p-2 text-accent transition-colors hover:bg-secondary/30"
-                          aria-label={`Editar a ${c.firstName ?? c.firtsName ?? ""} ${c.lastName}`}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => pedirConfirmacionEliminar(c)}
-                          className="rounded-lg p-2 text-red-500 transition-colors hover:bg-red-50"
-                          aria-label={`Eliminar a ${c.firstName ?? c.firtsName ?? ""} ${c.lastName}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {clientesFiltrados.map((c) => {
+                  const fullName = getFullName(c);
+                  return (
+                    <tr key={c.id} className="transition-colors hover:bg-mint/40">
+                      <td className="px-6 py-4 font-medium text-text">{fullName}</td>
+                      <td className="px-6 py-4 text-text/80">{c.dpi}</td>
+                      <td className="px-6 py-4 text-text/80">{c.phone || "—"}</td>
+                      <td className="px-6 py-4 text-text/80">{c.email || "—"}</td>
+                      <td className="px-6 py-4 text-text/80">{c.address || "—"}</td>
+                      {(canEdit || canDelete) && (
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-2">
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => abrirEditar(c)}
+                                className="cursor-pointer rounded-lg p-2 text-accent transition-colors hover:bg-secondary/30"
+                                aria-label={`Editar a ${fullName}`}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                            )}
+                            {canDelete && (
+                              <button
+                                type="button"
+                                onClick={() => setClienteAEliminar(c)}
+                                className="cursor-pointer rounded-lg p-2 text-red-500 transition-colors hover:bg-red-50"
+                                aria-label={`Eliminar a ${fullName}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
 
-      <ClientFormModal
-        key={`${formAbierto}-${clienteEditando?.id ?? "nuevo"}`}
+      {/* Modal */}
+      <ClientModal
         open={formAbierto}
         clienteEditando={clienteEditando}
-        onClose={() => setFormAbierto(false)}
+        onClose={cerrarModal}
         onSave={guardarCliente}
       />
+
+      {/* ConfirmDialog */}
       <ConfirmDialog
         open={clienteAEliminar !== null}
+        variant="danger"
         title="Eliminar cliente"
         description={
-          clienteAEliminar
-            ? `¿Seguro que quieres eliminar a ${clienteAEliminar.firstName ?? clienteAEliminar.firtsName ?? ""} ${clienteAEliminar.lastName} del listado? Esta acción no se puede deshacer.`
-            : ""
+          <>
+            Vas a eliminar a <strong>{nombreAEliminar}</strong> del listado. Esta acción no se
+            puede deshacer.
+          </>
         }
+        confirmLabel="Eliminar"
         onConfirm={confirmarEliminar}
         onCancel={() => setClienteAEliminar(null)}
       />

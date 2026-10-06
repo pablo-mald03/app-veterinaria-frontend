@@ -1,6 +1,7 @@
 import { CalendarCheck, PawPrint, AlertTriangle, DollarSign } from "lucide-react";
 import Can from "@/components/auth/Can";
 import StatCard from "./StatCard";
+import DashboardGreeting from "./DashboardGreeting";
 
 // Forma de una cita para la lista de "Próximas Citas".
 // Cuando se conecte con la API, este arreglo vendrá de userService/citasService.
@@ -13,20 +14,11 @@ interface CitaResumen {
 // Placeholder vacío hasta conectar con el backend real
 const proximasCitas: CitaResumen[] = [];
 
+//Principal dashboard layout
 export default function Dashboard() {
   return (
     <div className="flex min-h-full flex-col gap-8 bg-white p-8">
-      <div>
-        <h1
-          className="text-3xl font-bold text-text"
-          style={{ fontFamily: "'Young Serif', serif" }}
-        >
-          Bienvenido de nuevo
-        </h1>
-        <p className="mt-1 text-sm text-text/70">
-          Este es el resumen de actividad de hoy en Happy Pets.
-        </p>
-      </div>
+      <DashboardGreeting />
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Can permission="citas:ver">

@@ -2,8 +2,8 @@
 
 import { useId, useRef, useState } from "react";
 import { Eye, EyeOff, X } from "lucide-react";
-import FieldMessage from "@/components/ui/FieldMessage";
-import { FIELD_STYLES, type FieldVariant } from "./types/fieldVariants";
+import FieldMessage from "@/components/ui/common/FieldMessage";
+import { FIELD_STYLES, type FieldVariant } from "../types/fieldVariants";
 
 interface TextFieldProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "className" | "value" | "onChange" | "size"> {
     label: string;

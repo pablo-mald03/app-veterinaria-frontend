@@ -46,7 +46,7 @@ export default function ToastContainer() {
                         }}
                         className={[
                             "pointer-events-auto absolute w-full",
-                            "flex gap-3 overflow-hidden rounded-2xl border p-4 shadow-xl backdrop-blur-md",
+                            "flex gap-3 overflow-hidden rounded-2xl border p-4 shadow-2xl backdrop-blur-md ring-1 ring-black/5",
                             "transition-all duration-300 ease-out motion-safe:animate-toast-in",
                             TOAST_SURFACE[toast.variant],
                         ].join(" ")}

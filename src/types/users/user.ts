@@ -1,4 +1,4 @@
-import { Role } from "@/types/role";
+import { Role } from "@/types/roles/role";
 
 //User response module
 export interface UserResponse {

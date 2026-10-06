@@ -36,13 +36,17 @@ export const ENDPOINTS = {
     UPDATE: (id: number) => `${API_BASE_URL}/clients/${id}`,
     DELETE: (id: number) => `${API_BASE_URL}/clients/${id}`,
   },
-  //Role module
-  ROLES: {
-    LIST: `${API_BASE_URL}/roles`,
-  },
   //Permissions module
   PERMISSIONS: {
     LIST: `${API_BASE_URL}/permissions`,
     CATALOG: `${API_BASE_URL}/permissions/catalog`,
+  },
+  //Role module
+  ROLES: {
+    LIST: `${API_BASE_URL}/roles`,
+    DETAIL: (id: number) => `${API_BASE_URL}/roles/${id}`,
+    UPDATE_INFO: (id: number) => `${API_BASE_URL}/roles/${id}/role`,
+    UPDATE_STATUS: (id: number) => `${API_BASE_URL}/roles/${id}/status`,
+    PERMISSIONS: (id: number) => `${API_BASE_URL}/roles/${id}/permissions`,
   },
 };

@@ -8,7 +8,7 @@ import Dropdown from "@/components/ui/common/Dropdown";
 import TextField from "@/components/ui/common/TextField";
 import { useField } from "@/hooks/useField";
 import { roleService } from "@/services/roleService";
-import type { Role } from "@/types/role";
+import type { Role } from "@/types/roles/role";
 import {
     lastNameSchema,
     nameSchema,

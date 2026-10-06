@@ -119,6 +119,7 @@ export default function UserTable() {
         {
             key: "name",
             header: "Usuario",
+            className: "text-text",
             render: (u) => (
                 <>
                     <div className="font-semibold text-text">
@@ -131,11 +132,12 @@ export default function UserTable() {
         {
             key: "identification",
             header: "Identificación",
-            className: "font-mono text-xs",
+            className: "font-mono text-xs text-text",
         },
         {
             key: "email",
             header: "Contacto",
+            className: "text-text",
             render: (u) => (
                 <>
                     <div>{u.email}</div>
@@ -146,11 +148,13 @@ export default function UserTable() {
         {
             key: "role",
             header: "Rol",
+            className: "text-text",
             render: (u) => <UserRoleBadge roleName={u.roles?.[0]?.name} />,
         },
         {
             key: "status",
             header: "Estado",
+            className: "text-text",
             render: (u) => <UserStatusBadge active={u.status} />,
         },
     ];

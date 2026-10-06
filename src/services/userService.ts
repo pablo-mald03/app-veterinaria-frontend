@@ -6,7 +6,7 @@ import { Page } from "@/types/pagination";
 import { UserResponse } from "@/types/users/user";
 
 export type { UserResponse } from "@/types/users/user";
-export type { Role } from "@/types/role";
+export type { Role } from "@/types/roles/role";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 

@@ -20,3 +20,13 @@ export interface PermissionPage {
     totalPages: number;
     totalElements: number;
 }
+
+//Permissions filter
+export interface PermissionFilters {
+    moduleTarget?: string;
+    actionTarget?: string;
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    direction?: "asc" | "desc";
+}

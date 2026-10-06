@@ -81,7 +81,7 @@ export default function DataTable<T>({
                                         {columns.map((col) => (
                                             <td
                                                 key={col.key}
-                                                className={`px-6 py-4 ${ALIGN_CLASSES[col.align ?? "left"]} ${col.className ?? ""}`}
+                                                className={`px-6 py-4 text-text ${ALIGN_CLASSES[col.align ?? "left"]} ${col.className ?? ""}`}
                                             >
                                                 {col.render
                                                     ? col.render(row)
@@ -89,7 +89,7 @@ export default function DataTable<T>({
                                             </td>
                                         ))}
                                         {showActions && (
-                                            <td className="px-6 py-4">
+                                            <td className="px-6 py-4 text-text">
                                                 <div className="flex items-center justify-end gap-2">
                                                     {actions!.render(row)}
                                                 </div>

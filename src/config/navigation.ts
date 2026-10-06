@@ -1,5 +1,15 @@
 import type { LucideIcon } from "lucide-react";
-import { LayoutDashboard, PawPrint, CalendarDays, Pill, Folder, CreditCard, Users, Contact } from "lucide-react";
+import {
+    CalendarDays,
+    Contact,
+    CreditCard,
+    Folder,
+    LayoutDashboard,
+    PawPrint,
+    Pill,
+    ShieldCheck,
+    Users,
+} from "lucide-react";
 
 export interface NavItem {
     name: string;
@@ -17,4 +27,5 @@ export const NAV_ITEMS: NavItem[] = [
     { name: "Gestión de Documentos", href: "/documentos", icon: Folder, permission: "documentos:ver" },
     { name: "Facturación", href: "/facturacion", icon: CreditCard, permission: "facturacion:ver" },
     { name: "Recursos Humanos", href: "/dashboard/users", icon: Users, permission: "usuarios:ver" },
+    { name: "Roles y Permisos", href: "/dashboard/roles", icon: ShieldCheck, permission: "roles:ver" },
 ];

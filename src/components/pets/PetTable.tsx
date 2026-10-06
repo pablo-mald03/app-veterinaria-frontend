@@ -5,7 +5,7 @@ import { Plus, Search, Pencil, Trash2, FileText } from "lucide-react";
 import { Mascota, Especie } from "@/types/pet";
 import PetFormModal from "./PetFormModal";
 import PetExpedienteModal from "./PetExpedienteModal";
-import ConfirmDialog from "../ui/Confirmdialog";
+import ConfirmDialog from "../ui/dialogs/Confirmdialog";
 import { getClients } from "@/services/clientsService";
 import { createPet, deletePet, getPets, updatePet } from "@/services/petsService";
 import { ClientResponse } from "@/types/client-api";

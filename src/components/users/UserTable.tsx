@@ -1,55 +1,60 @@
-// src/components/users/UserTable.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Ban, Edit3, ShieldCheck, UserPlus } from "lucide-react";
 import { userService, type UserResponse } from "@/services/userService";
 import type { UserFormData } from "@/schemas/user.schema";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useToast } from "@/components/ui/toast/ToastProvider";
 import UserModal from "@/components/users/UserModal";
-import UserTableHeader from "@/components/users/user-table/UserTableHeader";
-import UserSearchBar from "@/components/users/user-table/UserSearchBar";
-import UserRow from "@/components/users/user-table/UserRow";
-import ConfirmDialog from "../ui/Confirmdialog";
-import { useToast } from "../ui/toast/ToastProvider";
+import DataTable from "@/components/ui/table/DataTable";
+import RowActions from "@/components/ui/table/RowActions";
+import UserRoleBadge from "@/components/users/user-table/UserRoleBadge";
+import UserStatusBadge from "@/components/users/user-table/UserStatusBadge";
+import { TableColumn } from "../ui/types/tableTypes";
+import PageHeader from "../ui/common/PageHeader";
+import SearchBar from "../ui/common/SearchBar";
+import ConfirmDialog from "../ui/dialogs/Confirmdialog";
 
 type PendingAction = { type: "deactivate" | "reactivate"; user: UserResponse } | null;
 
-const COLUMNS = ["Usuario", "Identificación", "Contacto", "Rol", "Estado", "Acciones"] as const;
 
 //Users table component 
 export default function UserTable() {
     const { hasPermission } = useAuth();
     const toast = useToast();
 
-    const [usuarios, setUsuarios] = useState<UserResponse[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [busqueda, setBusqueda] = useState("");
-
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingUser, setEditingUser] = useState<UserResponse | null>(null);
-
-    const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-
     const canCreate = hasPermission("usuarios:crear");
     const canEdit = hasPermission("usuarios:editar");
     const canDeactivate = hasPermission("usuarios:eliminar");
 
-    const cargarUsuarios = async () => {
+    const [usuarios, setUsuarios] = useState<UserResponse[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [busqueda, setBusqueda] = useState("");
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState<UserResponse | null>(null);
+    const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+
+    const cargarUsuarios = useCallback(async () => {
         setLoading(true);
+        setLoadError(null);
         try {
             const data = await userService.getAll();
             setUsuarios(data);
         } catch (err) {
-            console.error("Error al obtener usuarios:", err);
+            const message = err instanceof Error ? err.message : "No se pudieron cargar los usuarios.";
+            setLoadError(message);
+            toast.error(message, "Error al cargar usuarios");
         } finally {
             setLoading(false);
         }
-    };
+    }, [toast]);
 
     useEffect(() => {
-        cargarUsuarios();
-    }, []);
+        void cargarUsuarios();
+    }, [cargarUsuarios]);
 
     const handleOpenCreate = () => {
         setEditingUser(null);
@@ -61,9 +66,6 @@ export default function UserTable() {
         setIsModalOpen(true);
     };
 
-    const handleCloseModal = () => setIsModalOpen(false);
-
-
     const handleSaveUser = async (formData: UserFormData) => {
         try {
             if (editingUser) {
@@ -71,17 +73,16 @@ export default function UserTable() {
                     userService.update(editingUser.id, formData),
                     userService.updateUserRoles(editingUser.id, formData.roleAliases),
                 ]);
+                toast.success("Usuario actualizado", `${editingUser.name} ${editingUser.firstName}`);
             } else {
                 await userService.create(formData);
+                toast.success("Usuario creado", `${formData.name} ${formData.firstName}`);
             }
             setIsModalOpen(false);
-            cargarUsuarios();
-            toast.success("Usuario guardado", editingUser ? "Actualizado" : "Creado");
+            await cargarUsuarios();
         } catch (err) {
-            toast.error(
-                err instanceof Error ? err.message : "Error al guardar usuario",
-                "No se pudo guardar"
-            );
+            const message = err instanceof Error ? err.message : "Error al guardar usuario.";
+            toast.error(message, "Error al guardar");
             throw err;
         }
     };
@@ -89,24 +90,22 @@ export default function UserTable() {
     const handleConfirmAction = async () => {
         if (!pendingAction) return;
         const { type, user } = pendingAction;
+        const fullName = `${user.name} ${user.firstName}`.trim();
 
         try {
             if (type === "deactivate") {
                 await userService.delete(user.id);
-                toast.warning(`${user.name} fue desactivado`, "Acceso inhabilitado");
+                toast.warning(`${fullName} desactivado`, "Acceso inhabilitado");
             } else {
                 await userService.reactivate(user.id);
-                toast.success(`${user.name} fue reactivado`, "Acceso restaurado");
+                toast.success(`${fullName} reactivado`, "Acceso restaurado");
             }
             setPendingAction(null);
-            cargarUsuarios();
+            await cargarUsuarios();
         } catch (err) {
-            toast.error(
-                type === "deactivate"
-                    ? "Error al desactivar el usuario."
-                    : "Error al reactivar el usuario.",
-                "Operación fallida"
-            );
+            const message = err instanceof Error ? err.message : "Error al actualizar el estado.";
+            toast.error(message, "Operación fallida");
+            throw err;
         }
     };
 
@@ -116,64 +115,125 @@ export default function UserTable() {
             .includes(busqueda.toLowerCase())
     );
 
+    const columns: TableColumn<UserResponse>[] = [
+        {
+            key: "name",
+            header: "Usuario",
+            render: (u) => (
+                <>
+                    <div className="font-semibold text-text">
+                        {u.name} {u.firstName}
+                    </div>
+                    <div className="text-xs font-medium text-accent">@{u.userRegistry}</div>
+                </>
+            ),
+        },
+        {
+            key: "identification",
+            header: "Identificación",
+            className: "font-mono text-xs",
+        },
+        {
+            key: "email",
+            header: "Contacto",
+            render: (u) => (
+                <>
+                    <div>{u.email}</div>
+                    <div className="text-xs text-text/60">{u.phone}</div>
+                </>
+            ),
+        },
+        {
+            key: "role",
+            header: "Rol",
+            render: (u) => <UserRoleBadge roleName={u.roles?.[0]?.name} />,
+        },
+        {
+            key: "status",
+            header: "Estado",
+            render: (u) => <UserStatusBadge active={u.status} />,
+        },
+    ];
+
     const nombrePendiente = pendingAction
         ? `${pendingAction.user.name} ${pendingAction.user.firstName}`.trim()
         : "";
 
     return (
         <div className="flex min-h-full flex-col gap-6 bg-white p-8">
-            <UserTableHeader canCreate={canCreate} onCreate={handleOpenCreate} />
+            <PageHeader
+                title="Gestión de Usuarios"
+                subtitle="Administración de accesos y credenciales del personal de Happy Pets."
+                action={
+                    canCreate && (
+                        <button
+                            type="button"
+                            onClick={handleOpenCreate}
+                            className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-accent"
+                        >
+                            <UserPlus className="h-5 w-5" />
+                            <span>Registrar Usuario</span>
+                        </button>
+                    )
+                }
+            />
 
-            <UserSearchBar value={busqueda} onChange={setBusqueda} />
+            <SearchBar
+                value={busqueda}
+                onChange={setBusqueda}
+                placeholder="Buscar por nombre, correo o usuario..."
+            />
 
-            <div className="overflow-hidden rounded-2xl border border-secondary/50 bg-white shadow-md">
-                <table className="w-full text-left text-sm text-text">
-                    <thead className="bg-mint text-xs font-bold uppercase tracking-wider text-accent">
-                        <tr>
-                            {COLUMNS.map((col) => (
-                                <th key={col} className={`p-4 ${col === "Acciones" ? "text-center" : ""}`}>
-                                    {col}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-mint">
-                        {loading ? (
-                            <tr>
-                                <td colSpan={COLUMNS.length} className="p-8 text-center text-text/60">
-                                    <div className="flex items-center justify-center gap-2">
-                                        <RefreshCw className="h-5 w-5 animate-spin text-primary" />
-                                        <span>Cargando usuarios...</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        ) : usuariosFiltrados.length === 0 ? (
-                            <tr>
-                                <td colSpan={COLUMNS.length} className="p-8 text-center text-text/60">
-                                    No hay usuarios registrados que coincidan con la búsqueda.
-                                </td>
-                            </tr>
-                        ) : (
-                            usuariosFiltrados.map((u) => (
-                                <UserRow
-                                    key={u.id}
-                                    user={u}
-                                    canEdit={canEdit}
-                                    canDeactivate={canDeactivate}
-                                    onEdit={handleOpenEdit}
-                                    onDeactivate={(user) => setPendingAction({ type: "deactivate", user })}
-                                    onReactivate={(user) => setPendingAction({ type: "reactivate", user })}
+            <DataTable<UserResponse>
+                columns={columns}
+                rows={usuariosFiltrados}
+                getRowKey={(u) => u.id}
+                loading={loading}
+                error={loadError}
+                loadingLabel="Cargando usuarios..."
+                emptyState={{
+                    title: "No hay usuarios registrados",
+                    description: "Ajusta la búsqueda o registra un nuevo usuario.",
+                }}
+                actions={
+                    canEdit || canDeactivate
+                        ? {
+                            render: (u) => (
+                                <RowActions
+                                    actions={[
+                                        {
+                                            icon: <Edit3 className="h-4 w-4" />,
+                                            label: `Editar a ${u.name} ${u.firstName}`,
+                                            onClick: () => handleOpenEdit(u),
+                                            variant: "default",
+                                            visible: canEdit,
+                                        },
+                                        {
+                                            icon: <Ban className="h-4 w-4" />,
+                                            label: `Desactivar a ${u.name} ${u.firstName}`,
+                                            onClick: () => setPendingAction({ type: "deactivate", user: u }),
+                                            variant: "danger",
+                                            visible: canDeactivate && u.status,
+                                        },
+                                        {
+                                            icon: <ShieldCheck className="h-4 w-4" />,
+                                            label: `Reactivar a ${u.name} ${u.firstName}`,
+                                            onClick: () => setPendingAction({ type: "reactivate", user: u }),
+                                            variant: "success",
+                                            visible: canDeactivate && !u.status,
+                                        },
+                                    ]}
                                 />
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                            ),
+                        }
+                        : undefined
+                }
+            />
 
             <UserModal
                 isOpen={isModalOpen}
                 editingUser={editingUser}
-                onClose={handleCloseModal}
+                onClose={() => setIsModalOpen(false)}
                 onSubmit={handleSaveUser}
             />
 

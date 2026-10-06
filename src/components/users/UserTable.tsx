@@ -1,24 +1,39 @@
-'use client';
+// src/components/users/UserTable.tsx
+"use client";
 
-import { useState, useEffect } from 'react';
-import { UserPlus, Search, Edit3, Trash2, ShieldCheck, RefreshCw } from 'lucide-react';
-import { userService, UserResponse } from '@/services/userService';
-import { UserFormData } from '@/schemas/user.schema';
-import UserModal from '@/components/users/UserModal';
-import ConfirmDialog from '@/components/ui/Confirmdialog';
+import { useEffect, useState } from "react";
+import { RefreshCw } from "lucide-react";
+import { userService, type UserResponse } from "@/services/userService";
+import type { UserFormData } from "@/schemas/user.schema";
+import { useAuth } from "@/components/auth/AuthProvider";
+import UserModal from "@/components/users/UserModal";
+import UserTableHeader from "@/components/users/user-table/UserTableHeader";
+import UserSearchBar from "@/components/users/user-table/UserSearchBar";
+import UserRow from "@/components/users/user-table/UserRow";
+import ConfirmDialog from "../ui/Confirmdialog";
+import { useToast } from "../ui/toast/ToastProvider";
 
-type PendingAction = { type: 'deactivate' | 'reactivate'; user: UserResponse } | null;
+type PendingAction = { type: "deactivate" | "reactivate"; user: UserResponse } | null;
 
+const COLUMNS = ["Usuario", "Identificación", "Contacto", "Rol", "Estado", "Acciones"] as const;
+
+//Users table component 
 export default function UserTable() {
-    const [usuarios, setUsuarios] = useState<UserResponse[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [busqueda, setBusqueda] = useState<string>('');
+    const { hasPermission } = useAuth();
+    const toast = useToast();
 
-    const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+    const [usuarios, setUsuarios] = useState<UserResponse[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [busqueda, setBusqueda] = useState("");
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<UserResponse | null>(null);
 
-    // Acción pendiente de confirmación (desactivar / reactivar)
     const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+
+    const canCreate = hasPermission("usuarios:crear");
+    const canEdit = hasPermission("usuarios:editar");
+    const canDeactivate = hasPermission("usuarios:eliminar");
 
     const cargarUsuarios = async () => {
         setLoading(true);
@@ -26,7 +41,7 @@ export default function UserTable() {
             const data = await userService.getAll();
             setUsuarios(data);
         } catch (err) {
-            console.error('Error al obtener usuarios:', err);
+            console.error("Error al obtener usuarios:", err);
         } finally {
             setLoading(false);
         }
@@ -46,6 +61,9 @@ export default function UserTable() {
         setIsModalOpen(true);
     };
 
+    const handleCloseModal = () => setIsModalOpen(false);
+
+
     const handleSaveUser = async (formData: UserFormData) => {
         try {
             if (editingUser) {
@@ -58,8 +76,12 @@ export default function UserTable() {
             }
             setIsModalOpen(false);
             cargarUsuarios();
-        } catch (err: unknown) {
-            console.error('Error al guardar usuario:', err);
+            toast.success("Usuario guardado", editingUser ? "Actualizado" : "Creado");
+        } catch (err) {
+            toast.error(
+                err instanceof Error ? err.message : "Error al guardar usuario",
+                "No se pudo guardar"
+            );
             throw err;
         }
     };
@@ -71,14 +93,20 @@ export default function UserTable() {
         try {
             if (type === "deactivate") {
                 await userService.delete(user.id);
+                toast.warning(`${user.name} fue desactivado`, "Acceso inhabilitado");
             } else {
                 await userService.reactivate(user.id);
+                toast.success(`${user.name} fue reactivado`, "Acceso restaurado");
             }
             setPendingAction(null);
             cargarUsuarios();
         } catch (err) {
-            console.error("Error al actualizar el estado del usuario:", err);
-            alert(type === "deactivate" ? "Error al desactivar el usuario." : "Error al reactivar el usuario.");
+            toast.error(
+                type === "deactivate"
+                    ? "Error al desactivar el usuario."
+                    : "Error al reactivar el usuario.",
+                "Operación fallida"
+            );
         }
     };
 
@@ -90,59 +118,29 @@ export default function UserTable() {
 
     const nombrePendiente = pendingAction
         ? `${pendingAction.user.name} ${pendingAction.user.firstName}`.trim()
-        : '';
+        : "";
 
     return (
         <div className="flex min-h-full flex-col gap-6 bg-white p-8">
-            {/* Encabezado */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-text" style={{ fontFamily: "'Young Serif', serif" }}>
-                        Gestión de Usuarios
-                    </h1>
-                    <p className="mt-1 text-sm text-text/70">
-                        Administración de accesos y credenciales del personal de Happy Pets.
-                    </p>
-                </div>
+            <UserTableHeader canCreate={canCreate} onCreate={handleOpenCreate} />
 
-                <button
-                    onClick={handleOpenCreate}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-accent cursor-pointer"
-                >
-                    <UserPlus className="h-5 w-5" />
-                    <span>Registrar Usuario</span>
-                </button>
-            </div>
+            <UserSearchBar value={busqueda} onChange={setBusqueda} />
 
-            {/* Buscador */}
-            <div className="flex items-center gap-3 rounded-2xl border border-secondary/50 bg-white p-3 shadow-sm">
-                <Search className="h-5 w-5 text-accent" />
-                <input
-                    type="text"
-                    placeholder="Buscar por nombre, correo o usuario..."
-                    value={busqueda}
-                    onChange={(e) => setBusqueda(e.target.value)}
-                    className="w-full text-sm text-text outline-none placeholder:text-text/40"
-                />
-            </div>
-
-            {/* Tabla de Usuarios */}
             <div className="overflow-hidden rounded-2xl border border-secondary/50 bg-white shadow-md">
                 <table className="w-full text-left text-sm text-text">
                     <thead className="bg-mint text-xs font-bold uppercase tracking-wider text-accent">
                         <tr>
-                            <th className="p-4">Usuario</th>
-                            <th className="p-4">Identificación</th>
-                            <th className="p-4">Contacto</th>
-                            <th className="p-4">Rol</th>
-                            <th className="p-4">Estado</th>
-                            <th className="p-4 text-center">Acciones</th>
+                            {COLUMNS.map((col) => (
+                                <th key={col} className={`p-4 ${col === "Acciones" ? "text-center" : ""}`}>
+                                    {col}
+                                </th>
+                            ))}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-mint">
                         {loading ? (
                             <tr>
-                                <td colSpan={6} className="p-8 text-center text-text/60">
+                                <td colSpan={COLUMNS.length} className="p-8 text-center text-text/60">
                                     <div className="flex items-center justify-center gap-2">
                                         <RefreshCw className="h-5 w-5 animate-spin text-primary" />
                                         <span>Cargando usuarios...</span>
@@ -151,66 +149,21 @@ export default function UserTable() {
                             </tr>
                         ) : usuariosFiltrados.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="p-8 text-center text-text/60">
+                                <td colSpan={COLUMNS.length} className="p-8 text-center text-text/60">
                                     No hay usuarios registrados que coincidan con la búsqueda.
                                 </td>
                             </tr>
                         ) : (
                             usuariosFiltrados.map((u) => (
-                                <tr key={u.id} className="transition-colors hover:bg-mint/30">
-                                    <td className="p-4">
-                                        <div className="font-semibold text-text">{u.name} {u.firstName}</div>
-                                        <div className="text-xs font-medium text-accent">@{u.userRegistry}</div>
-                                    </td>
-                                    <td className="p-4 font-mono text-xs">{u.identification}</td>
-                                    <td className="p-4">
-                                        <div>{u.email}</div>
-                                        <div className="text-xs text-text/60">{u.phone}</div>
-                                    </td>
-                                    <td className="p-4">
-                                        <span className="inline-flex items-center gap-1 rounded-lg bg-secondary/30 px-2.5 py-1 text-xs font-bold text-accent">
-                                            <ShieldCheck className="h-3.5 w-3.5" />
-                                            {u.roles?.length > 0 ? u.roles[0].name : 'Rol indefinido'}
-                                        </span>
-                                    </td>
-                                    <td className="p-4">
-                                        <span
-                                            className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold ${u.status ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                                                }`}
-                                        >
-                                            {u.status ? "Activo" : "Inactivo"}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <div className="flex justify-center gap-2">
-                                            <button
-                                                onClick={() => handleOpenEdit(u)}
-                                                className="rounded-lg p-2 text-accent hover:bg-mint cursor-pointer"
-                                                title="Editar usuario"
-                                            >
-                                                <Edit3 className="h-4 w-4" />
-                                            </button>
-
-                                            {u.status ? (
-                                                <button
-                                                    onClick={() => setPendingAction({ type: 'deactivate', user: u })}
-                                                    className="rounded-lg p-2 text-red-500 hover:bg-red-50 cursor-pointer"
-                                                    title="Desactivar usuario"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    onClick={() => setPendingAction({ type: 'reactivate', user: u })}
-                                                    className="rounded-lg p-2 text-green-500 hover:bg-green-50 cursor-pointer"
-                                                    title="Reactivar usuario"
-                                                >
-                                                    <ShieldCheck className="h-4 w-4" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
+                                <UserRow
+                                    key={u.id}
+                                    user={u}
+                                    canEdit={canEdit}
+                                    canDeactivate={canDeactivate}
+                                    onEdit={handleOpenEdit}
+                                    onDeactivate={(user) => setPendingAction({ type: "deactivate", user })}
+                                    onReactivate={(user) => setPendingAction({ type: "reactivate", user })}
+                                />
                             ))
                         )}
                     </tbody>
@@ -220,10 +173,9 @@ export default function UserTable() {
             <UserModal
                 isOpen={isModalOpen}
                 editingUser={editingUser}
-                onClose={() => setIsModalOpen(false)}
+                onClose={handleCloseModal}
                 onSubmit={handleSaveUser}
             />
-
 
             <ConfirmDialog
                 open={pendingAction !== null}
@@ -232,12 +184,13 @@ export default function UserTable() {
                 description={
                     pendingAction?.type === "deactivate" ? (
                         <>
-                            Vas a desactivar a <strong>{nombrePendiente}</strong>. Ya no podrá acceder al sistema,
-                            pero podrás reactivarlo después.
+                            Vas a desactivar a <strong>{nombrePendiente}</strong>. Ya no podrá acceder al
+                            sistema, pero podrás reactivarlo después.
                         </>
                     ) : (
                         <>
-                            Vas a reactivar a <strong>{nombrePendiente}</strong>. Volverá a tener acceso al sistema.
+                            Vas a reactivar a <strong>{nombrePendiente}</strong>. Volverá a tener acceso al
+                            sistema.
                         </>
                     )
                 }

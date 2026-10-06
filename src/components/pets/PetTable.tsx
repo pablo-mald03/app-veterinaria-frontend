@@ -1,76 +1,95 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Pencil, Trash2, FileText } from "lucide-react";
-import { Mascota, Especie } from "@/types/pet";
-import PetFormModal from "./PetFormModal";
-import PetExpedienteModal from "./PetExpedienteModal";
-import ConfirmDialog from "../ui/Confirmdialog";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { FileText, Pencil, Plus, Trash2 } from "lucide-react";
+import PetModal from "@/components/pets/PetModal";
+import PetExpedienteModal from "@/components/pets/PetExpedienteModal";
+import DataTable from "@/components/ui/table/DataTable";
+import RowActions from "@/components/ui/table/RowActions";
+import PageHeader from "@/components/ui/common/PageHeader";
+import SearchBar from "@/components/ui/common/SearchBar";
+import SpeciesFilter from "@/components/pets/SpeciesFilter";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { useToast } from "@/components/ui/toast/ToastProvider";
 import { getClients } from "@/services/clientsService";
 import { createPet, deletePet, getPets, updatePet } from "@/services/petsService";
-import { ClientResponse } from "@/types/client-api";
-import { PetRequest, PetResponse } from "@/types/pet-api";
+import type { ClientResponse } from "@/types/client-api";
+import type { Especie, Mascota } from "@/types/pet";
+import type { PetRequest, PetResponse } from "@/types/pet-api";
+import type { TableColumn } from "@/components/ui/types/tableTypes";
+import ConfirmDialog from "../ui/dialogs/Confirmdialog";
 
-const especies: (Especie | "TODAS")[] = ["TODAS", "PERRO", "GATO", "AVE", "OTRO"];
+// ---- Helpers ----
 
+function getClientFullName(c: ClientResponse): string {
+  return `${c.firstName ?? c.firtsName ?? ""} ${c.lastName}`.trim();
+}
+
+function mapPetToMascota(pet: PetResponse, clientes: ClientResponse[]): Mascota {
+  const cliente = clientes.find((item) => item.id === pet.idClient);
+  return {
+    id: String(pet.idPet),
+    name: pet.name,
+    especie: pet.species as Especie,
+    breed: pet.breed,
+    color: pet.color,
+    age: pet.age,
+    weight: pet.weight,
+    clientId: String(pet.idClient),
+    ownerName: cliente ? getClientFullName(cliente) : undefined,
+    description: pet.description,
+  };
+}
+
+// ---- Components ----
+
+//Principal pet table component
 export default function PetTable() {
+  const { hasPermission } = useAuth();
+  const toast = useToast();
+
+  const canCreate = hasPermission("mascotas:crear");
+  const canEdit = hasPermission("mascotas:editar");
+  const canDelete = hasPermission("mascotas:eliminar");
+  const canViewRecord = hasPermission("mascotas:ver");
+
   const [mascotas, setMascotas] = useState<Mascota[]>([]);
   const [clientes, setClientes] = useState<ClientResponse[]>([]);
   const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [especieFiltro, setEspecieFiltro] = useState<Especie | "TODAS">("TODAS");
 
   const [formAbierto, setFormAbierto] = useState(false);
   const [mascotaEditando, setMascotaEditando] = useState<Mascota | null>(null);
-
   const [expedienteAbierto, setExpedienteAbierto] = useState(false);
   const [mascotaExpediente, setMascotaExpediente] = useState<Mascota | null>(null);
-
-  // Mascota pendiente de confirmar eliminación (null = diálogo cerrado)
   const [mascotaAEliminar, setMascotaAEliminar] = useState<Mascota | null>(null);
 
-  const cargarDatos = async () => {
+  const cargarDatos = useCallback(async () => {
     setCargando(true);
-    setError("");
+    setLoadError(null);
     try {
       const [petsPage, clients] = await Promise.all([getPets(), getClients()]);
       setClientes(clients);
       setMascotas(petsPage.content.map((pet) => mapPetToMascota(pet, clients)));
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "No se pudieron cargar los datos.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "No se pudieron cargar los datos.";
+      setLoadError(message);
+      toast.error(message, "Error al cargar mascotas");
     } finally {
       setCargando(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
-    let mounted = true;
-
-    Promise.all([getPets(), getClients()])
-      .then(([petsPage, clients]) => {
-        if (!mounted) return;
-        setClientes(clients);
-        setMascotas(petsPage.content.map((pet) => mapPetToMascota(pet, clients)));
-      })
-      .catch((loadError: unknown) => {
-        if (mounted) {
-          setError(loadError instanceof Error ? loadError.message : "No se pudieron cargar los datos.");
-        }
-      })
-      .finally(() => {
-        if (mounted) setCargando(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    void cargarDatos();
+  }, [cargarDatos]);
 
   const mascotasFiltradas = useMemo(() => {
+    const q = busqueda.toLowerCase();
     return mascotas.filter((m) => {
-      const texto = `${m.name} ${m.ownerName ?? ""}`.toLowerCase();
-      const coincideBusqueda = texto.includes(busqueda.toLowerCase());
+      const coincideBusqueda = `${m.name} ${m.ownerName ?? ""}`.toLowerCase().includes(q);
       const coincideEspecie = especieFiltro === "TODAS" || m.especie === especieFiltro;
       return coincideBusqueda && coincideEspecie;
     });
@@ -86,6 +105,11 @@ export default function PetTable() {
     setFormAbierto(true);
   };
 
+  const abrirExpediente = (mascota: Mascota) => {
+    setMascotaExpediente(mascota);
+    setExpedienteAbierto(true);
+  };
+
   const guardarMascota = async (mascota: Mascota) => {
     const request: PetRequest = {
       name: mascota.name,
@@ -98,186 +122,173 @@ export default function PetTable() {
       description: mascota.description,
     };
 
-    if (mascotaEditando) {
-      await updatePet(Number(mascota.id), request);
-    } else {
-      await createPet(request);
+    try {
+      if (mascotaEditando) {
+        await updatePet(Number(mascotaEditando.id), request);
+        toast.success("Mascota actualizada", mascota.name);
+      } else {
+        await createPet(request);
+        toast.success("Mascota registrada", mascota.name);
+      }
+      setFormAbierto(false);
+      await cargarDatos();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "No se pudo guardar la mascota.";
+      toast.error(message, "Error al guardar");
+      throw err;
     }
-    await cargarDatos();
-  };
-
-  // Solo abre el diálogo; el borrado real ocurre en confirmarEliminar()
-  const pedirConfirmacionEliminar = (mascota: Mascota) => {
-    setMascotaAEliminar(mascota);
   };
 
   const confirmarEliminar = async () => {
     if (!mascotaAEliminar) return;
     try {
       await deletePet(Number(mascotaAEliminar.id));
+      toast.warning(`${mascotaAEliminar.name} eliminada`, "Mascota removida");
       setMascotaAEliminar(null);
       await cargarDatos();
-    } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "No se pudo eliminar la mascota.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "No se pudo eliminar la mascota.";
+      toast.error(message, "Error al eliminar");
+      throw err;
     }
   };
 
-  const abrirExpediente = (mascota: Mascota) => {
-    setMascotaExpediente(mascota);
-    setExpedienteAbierto(true);
-  };
+  const columns: TableColumn<Mascota>[] = [
+    { key: "name", header: "Nombre", className: "font-medium text-text" },
+    {
+      key: "species",
+      header: "Especie / Raza",
+      className: "text-text/80",
+      render: (m) => `${m.especie} · ${m.breed || "—"}`,
+    },
+    {
+      key: "age",
+      header: "Edad",
+      className: "text-text/80",
+      render: (m) => `${m.age} años`,
+    },
+    {
+      key: "weight",
+      header: "Peso",
+      className: "text-text/80",
+      render: (m) => `${m.weight} kg`,
+    },
+    {
+      key: "owner",
+      header: "Dueño",
+      className: "text-text/80",
+      render: (m) => m.ownerName ?? "—",
+    },
+  ];
+
+  const showActions = canViewRecord || canEdit || canDelete;
+  const nombreAEliminar = mascotaAEliminar?.name ?? "";
 
   return (
     <div className="flex min-h-full flex-col gap-8 bg-white p-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-[#2A2F63]" style={{ fontFamily: "'Young Serif', serif" }}>
-            Mascotas
-          </h1>
-          <p className="mt-1 text-sm text-[#2A2F63]/70">
-            Pacientes registrados y su expediente clínico.
-          </p>
-        </div>
-        <button
-          onClick={abrirCrear}
-          className="flex items-center justify-center gap-2 rounded-xl bg-[#5FB0C9] px-4 py-2.5 font-semibold text-white shadow-md transition-colors hover:bg-[#3E6D9C]"
-        >
-          <Plus className="h-5 w-5" />
-          Nueva Mascota
-        </button>
-      </div>
+      <PageHeader
+        title="Mascotas"
+        subtitle="Pacientes registrados y su expediente clínico."
+        action={
+          canCreate && (
+            <button
+              type="button"
+              onClick={abrirCrear}
+              className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-white shadow-md transition-colors hover:bg-accent"
+            >
+              <Plus className="h-5 w-5" />
+              Nueva Mascota
+            </button>
+          )
+        }
+      />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2A2F63]/50" />
-          <input
-            type="text"
+        <div className="flex-1">
+          <SearchBar
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={setBusqueda}
             placeholder="Buscar por mascota o dueño..."
-            className="w-full rounded-xl border border-[#A7E0DB] bg-white py-2.5 pl-10 pr-4 text-sm text-[#2A2F63] outline-none focus:border-[#5FB0C9] focus:ring-2 focus:ring-[#5FB0C9]/30"
           />
         </div>
-        <select
-          value={especieFiltro}
-          onChange={(e) => setEspecieFiltro(e.target.value as Especie | "TODAS")}
-          className="rounded-xl border border-[#A7E0DB] bg-white px-4 py-2.5 text-sm text-[#2A2F63] outline-none focus:border-[#5FB0C9] focus:ring-2 focus:ring-[#5FB0C9]/30"
-        >
-          {especies.map((esp) => (
-            <option key={esp} value={esp}>
-              {esp === "TODAS" ? "Todas las especies" : esp}
-            </option>
-          ))}
-        </select>
+        <SpeciesFilter value={especieFiltro} onChange={setEspecieFiltro} />
       </div>
 
-      <div className="overflow-hidden rounded-2xl bg-white shadow-md">
-        {cargando ? (
-          <div className="p-14 text-center text-sm text-[#2A2F63]/70">Cargando mascotas...</div>
-        ) : error ? (
-          <div className="p-14 text-center text-sm text-red-600">{error}</div>
-        ) : mascotasFiltradas.length === 0 ? (
-          <div className="m-4 flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[#A7E0DB] py-14 text-center">
-            <p className="text-sm font-medium text-[#2A2F63]">No se encontraron mascotas</p>
-            <p className="text-xs text-[#2A2F63]/60">
-              Ajusta la búsqueda o el filtro de especie, o registra una nueva.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-[#E3F6F5] text-xs font-semibold uppercase tracking-wide text-[#2A2F63]/70">
-                <tr>
-                  <th className="px-6 py-3">Nombre</th>
-                  <th className="px-6 py-3">Especie / Raza</th>
-                  <th className="px-6 py-3">Edad</th>
-                  <th className="px-6 py-3">Peso</th>
-                  <th className="px-6 py-3">Dueño</th>
-                  <th className="px-6 py-3 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E3F6F5]">
-                {mascotasFiltradas.map((m) => (
-                  <tr key={m.id} className="transition-colors hover:bg-[#E3F6F5]/40">
-                    <td className="px-6 py-4 font-medium text-[#2A2F63]">{m.name}</td>
-                    <td className="px-6 py-4 text-[#2A2F63]/80">{m.especie} · {m.breed}</td>
-                    <td className="px-6 py-4 text-[#2A2F63]/80">{m.age} años</td>
-                    <td className="px-6 py-4 text-[#2A2F63]/80">{m.weight} kg</td>
-                    <td className="px-6 py-4 text-[#2A2F63]/80">{m.ownerName ?? "—"}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => abrirExpediente(m)}
-                          className="rounded-lg p-2 text-[#3E6D9C] transition-colors hover:bg-[#A7E0DB]/30"
-                          aria-label={`Ver expediente de ${m.name}`}
-                        >
-                          <FileText className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => abrirEditar(m)}
-                          className="rounded-lg p-2 text-[#3E6D9C] transition-colors hover:bg-[#A7E0DB]/30"
-                          aria-label={`Editar a ${m.name}`}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => pedirConfirmacionEliminar(m)}
-                          className="rounded-lg p-2 text-red-500 transition-colors hover:bg-red-50"
-                          aria-label={`Eliminar a ${m.name}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <DataTable<Mascota>
+        columns={columns}
+        rows={mascotasFiltradas}
+        getRowKey={(m) => m.id}
+        loading={cargando}
+        error={loadError}
+        loadingLabel="Cargando mascotas..."
+        emptyState={{
+          title: "No se encontraron mascotas",
+          description: "Ajusta la búsqueda o el filtro de especie, o registra una nueva.",
+        }}
+        actions={
+          showActions
+            ? {
+              render: (m) => (
+                <RowActions
+                  actions={[
+                    {
+                      icon: <FileText className="h-4 w-4" />,
+                      label: `Ver expediente de ${m.name}`,
+                      onClick: () => abrirExpediente(m),
+                      variant: "default",
+                      visible: canViewRecord,
+                    },
+                    {
+                      icon: <Pencil className="h-4 w-4" />,
+                      label: `Editar a ${m.name}`,
+                      onClick: () => abrirEditar(m),
+                      variant: "default",
+                      visible: canEdit,
+                    },
+                    {
+                      icon: <Trash2 className="h-4 w-4" />,
+                      label: `Eliminar a ${m.name}`,
+                      onClick: () => setMascotaAEliminar(m),
+                      variant: "danger",
+                      visible: canDelete,
+                    },
+                  ]}
+                />
+              ),
+            }
+            : undefined
+        }
+      />
 
-      <PetFormModal
-        key={`${formAbierto}-${mascotaEditando?.id ?? "nueva"}`}
+      <PetModal
         open={formAbierto}
         mascotaEditando={mascotaEditando}
         clientes={clientes}
         onClose={() => setFormAbierto(false)}
         onSave={guardarMascota}
       />
+
       <PetExpedienteModal
         open={expedienteAbierto}
         mascota={mascotaExpediente}
         consultas={[]}
         onClose={() => setExpedienteAbierto(false)}
       />
+
       <ConfirmDialog
         open={mascotaAEliminar !== null}
+        variant="danger"
         title="Eliminar mascota"
         description={
-          mascotaAEliminar
-            ? `¿Seguro que quieres eliminar a ${mascotaAEliminar.name} del listado? Esta acción no se puede deshacer.`
-            : ""
+          <>
+            Vas a eliminar a <strong>{nombreAEliminar}</strong> del listado. Esta acción no se
+            puede deshacer.
+          </>
         }
+        confirmLabel="Eliminar"
         onConfirm={confirmarEliminar}
         onCancel={() => setMascotaAEliminar(null)}
       />
     </div>
   );
-}
-
-function mapPetToMascota(pet: PetResponse, clientes: ClientResponse[]): Mascota {
-  const cliente = clientes.find((item) => item.id === pet.idClient);
-  return {
-    id: String(pet.idPet),
-    name: pet.name,
-    especie: pet.species as Especie,
-    breed: pet.breed,
-    color: pet.color,
-    age: pet.age,
-    weight: pet.weight,
-    clientId: String(pet.idClient),
-    ownerName: cliente ? `${cliente.firstName ?? cliente.firtsName ?? ""} ${cliente.lastName}`.trim() : undefined,
-    description: pet.description,
-  };
 }

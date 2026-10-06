@@ -12,6 +12,74 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@theme {
+  --color-primary: #5FB0C9;
+  --color-secondary: #A7E0DB;
+  --color-accent: #3E6D9C;
+  --color-mint: #E3F6F5;
+  --color-text: #2A2F63;
+
+  --color-border: #A7E0DB;
+  --color-text-muted: #3E6D9C;
+  --color-placeholder: #9CA3AF;
+
+  --color-danger: #EF4444;
+  --color-danger-strong: #DC2626;
+  --color-danger-soft: #FEF2F2;
+  --color-danger-border: #FECACA;
+
+  --color-success: #047857;
+  --color-success-soft: #ECFDF5;
+  --color-success-border: #A7F3D0;
+
+  --font-display: 'Young Serif', serif;
+
+  --color-warning: #B45309;
+
+  --animate-field-message: field-message-in 0.15s ease-out;
+
+  @keyframes field-message-in {
+    from {
+      opacity: 0;
+      transform: translateY(-2px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  --animate-modal-in: modal-in 0.15s ease-out;
+
+  @keyframes modal-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+
+  --animate-toast-in: toast-in 0.2s ease-out;
+
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(-12px) scale(0.96);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;

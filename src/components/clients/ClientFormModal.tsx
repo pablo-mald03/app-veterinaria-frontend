@@ -78,19 +78,19 @@ function ClientFormContent({
     }
   };
 
-  const inputStyle = "w-full rounded-xl border border-[#A7E0DB] bg-white py-2 pl-9 pr-3 text-sm text-[#2A2F63] placeholder-gray-400 outline-none focus:border-[#5FB0C9]";
+  const inputStyle = "w-full rounded-xl border border-secondary bg-white py-2 pl-9 pr-3 text-sm text-text placeholder-gray-400 outline-none focus:border-primary";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2A2F63]/40 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl border border-[#A7E0DB]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-text/40 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl border border-secondary">
         
         {/* Encabezado */}
-        <div className="flex items-center justify-between border-b border-[#E3F6F5] pb-4">
+        <div className="flex items-center justify-between border-b border-mint pb-4">
           <div>
-            <h2 className="text-xl font-bold text-[#2A2F63]" style={{ fontFamily: "'Young Serif', serif" }}>
+            <h2 className="text-xl font-bold text-text" style={{ fontFamily: "'Young Serif', serif" }}>
               {clienteEditando ? 'Editar Cliente' : 'Registrar Nuevo Cliente'}
             </h2>
-            <p className="text-xs text-[#3E6D9C]">
+            <p className="text-xs text-accent">
               {clienteEditando ? 'Actualiza la información del perfil del cliente.' : 'Crea un nuevo registro de cliente en el sistema.'}
             </p>
           </div>
@@ -111,9 +111,9 @@ function ClientFormContent({
           {/* DPI e Identificación / Teléfono */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-xs font-bold uppercase text-[#2A2F63]">DPI / Identificación *</label>
+              <label className="text-xs font-bold uppercase text-text">DPI / Identificación *</label>
               <div className="relative flex items-center mt-1">
-                <IdCard className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+                <IdCard className="absolute left-3 h-4 w-4 text-accent" />
                 <input
                   type="text"
                   required
@@ -125,9 +125,9 @@ function ClientFormContent({
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase text-[#2A2F63]">Teléfono</label>
+              <label className="text-xs font-bold uppercase text-text">Teléfono</label>
               <div className="relative flex items-center mt-1">
-                <Phone className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+                <Phone className="absolute left-3 h-4 w-4 text-accent" />
                 <input
                   type="text"
                   value={form.phone}
@@ -141,9 +141,9 @@ function ClientFormContent({
           {/* Nombres y Apellidos */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-xs font-bold uppercase text-[#2A2F63]">Nombres *</label>
+              <label className="text-xs font-bold uppercase text-text">Nombres *</label>
               <div className="relative flex items-center mt-1">
-                <User className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+                <User className="absolute left-3 h-4 w-4 text-accent" />
                 <input
                   type="text"
                   required
@@ -155,9 +155,9 @@ function ClientFormContent({
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase text-[#2A2F63]">Apellidos *</label>
+              <label className="text-xs font-bold uppercase text-text">Apellidos *</label>
               <div className="relative flex items-center mt-1">
-                <User className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+                <User className="absolute left-3 h-4 w-4 text-accent" />
                 <input
                   type="text"
                   required
@@ -171,9 +171,9 @@ function ClientFormContent({
 
           {/* Correo Electrónico */}
           <div>
-            <label className="text-xs font-bold uppercase text-[#2A2F63]">Correo Electrónico</label>
+            <label className="text-xs font-bold uppercase text-text">Correo Electrónico</label>
             <div className="relative flex items-center mt-1">
-              <Mail className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+              <Mail className="absolute left-3 h-4 w-4 text-accent" />
               <input
                 type="email"
                 value={form.email}
@@ -185,9 +185,9 @@ function ClientFormContent({
 
           {/* Dirección */}
           <div>
-            <label className="text-xs font-bold uppercase text-[#2A2F63]">Dirección</label>
+            <label className="text-xs font-bold uppercase text-text">Dirección</label>
             <div className="relative flex mt-1">
-              <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-[#3E6D9C]" />
+              <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-accent" />
               <textarea
                 rows={2}
                 value={form.address}
@@ -198,7 +198,7 @@ function ClientFormContent({
           </div>
 
           {/* Botones de Acción */}
-          <div className="mt-4 flex justify-end gap-3 border-t border-[#E3F6F5] pt-4">
+          <div className="mt-4 flex justify-end gap-3 border-t border-mint pt-4">
             <button
               type="button"
               onClick={onClose}
@@ -210,7 +210,7 @@ function ClientFormContent({
             <button
               type="submit"
               disabled={guardando}
-              className="rounded-xl bg-[#5FB0C9] px-5 py-2 text-sm font-semibold text-white shadow-md hover:bg-[#3E6D9C] disabled:opacity-50 cursor-pointer"
+              className="rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-white shadow-md hover:bg-accent disabled:opacity-50 cursor-pointer"
             >
               {guardando ? 'Guardando...' : clienteEditando ? 'Actualizar' : 'Guardar Cliente'}
             </button>

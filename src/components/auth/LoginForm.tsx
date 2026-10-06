@@ -105,9 +105,9 @@ export default function AuthForm() {
   };
 
   return (
-      <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-xl border border-[#A7E0DB]/50">
+      <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-xl border border-secondary/50">
         <div className="flex flex-col items-center text-center">
-          <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-[#A7E0DB] bg-white shadow-sm mb-4">
+          <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-secondary bg-white shadow-sm mb-4">
             <Image
                 src="/HappyPetsIcon.jpeg"
                 alt="Logo Happy Pets"
@@ -119,24 +119,24 @@ export default function AuthForm() {
             />
           </div>
           <h1
-              className="text-3xl font-bold text-[#2A2F63]"
+              className="text-3xl font-bold text-text"
               style={{ fontFamily: "'Young Serif', serif" }}
           >
             Happy Pets
           </h1>
-          <p className="mt-1 text-sm font-medium text-[#3E6D9C]">
+          <p className="mt-1 text-sm font-medium text-accent">
             {activeTab === 'login' ? 'Ingresa a tu cuenta para continuar' : 'Restablecimiento de credenciales'}
           </p>
         </div>
 
-        <div className="mt-6 flex rounded-2xl bg-[#E3F6F5]/60 p-1">
+        <div className="mt-6 flex rounded-2xl bg-mint/60 p-1">
           <button
               type="button"
               onClick={() => switchTab('login')}
               className={`flex-1 rounded-xl py-2 text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'login'
-                      ? 'bg-white text-[#2A2F63] shadow-sm'
-                      : 'text-[#3E6D9C] hover:text-[#2A2F63]'
+                      ? 'bg-white text-text shadow-sm'
+                      : 'text-accent hover:text-text'
               }`}
           >
             Iniciar Sesión
@@ -146,8 +146,8 @@ export default function AuthForm() {
               onClick={() => switchTab('recover')}
               className={`flex-1 rounded-xl py-2 text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'recover'
-                      ? 'bg-white text-[#2A2F63] shadow-sm'
-                      : 'text-[#3E6D9C] hover:text-[#2A2F63]'
+                      ? 'bg-white text-text shadow-sm'
+                      : 'text-accent hover:text-text'
               }`}
           >
             Recuperar Contraseña
@@ -170,40 +170,40 @@ export default function AuthForm() {
         {activeTab === 'login' && (
             <form onSubmit={handleLoginSubmit} className="mt-5 flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-[#2A2F63]">
+                <label className="text-xs font-bold uppercase tracking-wider text-text">
                   Correo Electrónico
                 </label>
                 <div className="relative flex items-center">
-                  <Mail className="absolute left-3 h-5 w-5 text-[#3E6D9C]" />
+                  <Mail className="absolute left-3 h-5 w-5 text-accent" />
                   <input
                       type="email"
                       autoComplete="email"
                       placeholder="ejemplo@happypets.com"
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
-                      className="w-full rounded-xl border border-[#A7E0DB] bg-white py-2.5 pl-10 pr-4 text-sm text-[#2A2F63] outline-none transition-all focus:border-[#5FB0C9] focus:ring-2 focus:ring-[#5FB0C9]/20"
+                      className="w-full rounded-xl border border-secondary bg-white py-2.5 pl-10 pr-4 text-sm text-text outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-[#2A2F63]">
+                <label className="text-xs font-bold uppercase tracking-wider text-text">
                   Contraseña
                 </label>
                 <div className="relative flex items-center">
-                  <Lock className="absolute left-3 h-5 w-5 text-[#3E6D9C]" />
+                  <Lock className="absolute left-3 h-5 w-5 text-accent" />
                   <input
                       type={showLoginPassword ? 'text' : 'password'}
                       autoComplete="current-password"
                       placeholder="••••••••"
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
-                      className="w-full rounded-xl border border-[#A7E0DB] bg-white py-2.5 pl-10 pr-10 text-sm text-[#2A2F63] outline-none transition-all focus:border-[#5FB0C9] focus:ring-2 focus:ring-[#5FB0C9]/20"
+                      className="w-full rounded-xl border border-secondary bg-white py-2.5 pl-10 pr-10 text-sm text-text outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                   <button
                       type="button"
                       onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      className="absolute right-3 text-[#3E6D9C] hover:text-[#2A2F63]"
+                      className="absolute right-3 text-accent hover:text-text"
                   >
                     {showLoginPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -213,7 +213,7 @@ export default function AuthForm() {
               <button
                   type="submit"
                   disabled={loading}
-                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#5FB0C9] py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-[#3E6D9C] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-accent active:scale-[0.98] disabled:opacity-50 cursor-pointer"
               >
                 {loading ? (
                     <span>Iniciando sesión...</span>
@@ -230,57 +230,57 @@ export default function AuthForm() {
         {activeTab === 'recover' && (
             <form onSubmit={handleRecoverSubmit} className="mt-5 flex flex-col gap-3.5">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold uppercase tracking-wider text-[#2A2F63]">
+                <label className="text-xs font-bold uppercase tracking-wider text-text">
                   DPI
                 </label>
                 <div className="relative flex items-center">
-                  <IdCard className="absolute left-3 h-5 w-5 text-[#3E6D9C]" />
+                  <IdCard className="absolute left-3 h-5 w-5 text-accent" />
                   <input
                       type="text"
                       placeholder="Número de DPI (solo números)"
                       value={dpi}
                       onChange={(e) => setDpi(e.target.value.replace(/\D/g, ''))} // Limita a solo digitos
                       maxLength={13}
-                      className="w-full rounded-xl border border-[#A7E0DB] bg-white py-2 pl-10 pr-4 text-sm text-[#2A2F63] outline-none transition-all focus:border-[#5FB0C9] focus:ring-2 focus:ring-[#5FB0C9]/20"
+                      className="w-full rounded-xl border border-secondary bg-white py-2 pl-10 pr-4 text-sm text-text outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold uppercase tracking-wider text-[#2A2F63]">
+                <label className="text-xs font-bold uppercase tracking-wider text-text">
                   Correo Electrónico
                 </label>
                 <div className="relative flex items-center">
-                  <Mail className="absolute left-3 h-5 w-5 text-[#3E6D9C]" />
+                  <Mail className="absolute left-3 h-5 w-5 text-accent" />
                   <input
                       type="email"
                       autoComplete="email"
                       placeholder="ejemplo@happypets.com"
                       value={recoverEmail}
                       onChange={(e) => setRecoverEmail(e.target.value)}
-                      className="w-full rounded-xl border border-[#A7E0DB] bg-white py-2 pl-10 pr-4 text-sm text-[#2A2F63] outline-none transition-all focus:border-[#5FB0C9] focus:ring-2 focus:ring-[#5FB0C9]/20"
+                      className="w-full rounded-xl border border-secondary bg-white py-2 pl-10 pr-4 text-sm text-text outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold uppercase tracking-wider text-[#2A2F63]">
+                <label className="text-xs font-bold uppercase tracking-wider text-text">
                   Nueva Contraseña
                 </label>
                 <div className="relative flex items-center">
-                  <KeyRound className="absolute left-3 h-5 w-5 text-[#3E6D9C]" />
+                  <KeyRound className="absolute left-3 h-5 w-5 text-accent" />
                   <input
                       type={showNewPassword ? 'text' : 'password'}
                       autoComplete="new-password"
                       placeholder="••••••••"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full rounded-xl border border-[#A7E0DB] bg-white py-2 pl-10 pr-10 text-sm text-[#2A2F63] outline-none transition-all focus:border-[#5FB0C9] focus:ring-2 focus:ring-[#5FB0C9]/20"
+                      className="w-full rounded-xl border border-secondary bg-white py-2 pl-10 pr-10 text-sm text-text outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                   <button
                       type="button"
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 text-[#3E6D9C] hover:text-[#2A2F63]"
+                      className="absolute right-3 text-accent hover:text-text"
                   >
                     {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -288,23 +288,23 @@ export default function AuthForm() {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold uppercase tracking-wider text-[#2A2F63]">
+                <label className="text-xs font-bold uppercase tracking-wider text-text">
                   Confirmar Contraseña
                 </label>
                 <div className="relative flex items-center">
-                  <Lock className="absolute left-3 h-5 w-5 text-[#3E6D9C]" />
+                  <Lock className="absolute left-3 h-5 w-5 text-accent" />
                   <input
                       type={showConfirmPassword ? 'text' : 'password'}
                       autoComplete="new-password"
                       placeholder="••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full rounded-xl border border-[#A7E0DB] bg-white py-2 pl-10 pr-10 text-sm text-[#2A2F63] outline-none transition-all focus:border-[#5FB0C9] focus:ring-2 focus:ring-[#5FB0C9]/20"
+                      className="w-full rounded-xl border border-secondary bg-white py-2 pl-10 pr-10 text-sm text-text outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                   <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 text-[#3E6D9C] hover:text-[#2A2F63]"
+                      className="absolute right-3 text-accent hover:text-text"
                   >
                     {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -314,7 +314,7 @@ export default function AuthForm() {
               <button
                   type="submit"
                   disabled={loading}
-                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#5FB0C9] py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-[#3E6D9C] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-accent active:scale-[0.98] disabled:opacity-50 cursor-pointer"
               >
                 {loading ? (
                     <span>Procesando...</span>
@@ -325,7 +325,7 @@ export default function AuthForm() {
             </form>
         )}
 
-        <p className="mt-6 text-center text-xs text-[#2A2F63]/60">
+        <p className="mt-6 text-center text-xs text-text/60">
           ¿Problemas para acceder? Contacta al administrador del sistema.
         </p>
       </div>

@@ -26,10 +26,10 @@ const initialFormState: UserFormData = {
 };
 
 const inputStyle =
-    'w-full rounded-xl border border-[#A7E0DB] bg-white py-2 pl-9 pr-3 text-sm text-[#2A2F63] placeholder-gray-400 outline-none focus:border-[#5FB0C9]';
+    'w-full rounded-xl border border-secondary bg-white py-2 pl-9 pr-3 text-sm text-text placeholder-gray-400 outline-none focus:border-primary';
 
 const inputNoIconStyle =
-    'mt-1 w-full rounded-xl border border-[#A7E0DB] bg-white p-2 text-sm text-[#2A2F63] placeholder-gray-400 outline-none focus:border-[#5FB0C9]';
+    'mt-1 w-full rounded-xl border border-secondary bg-white p-2 text-sm text-text placeholder-gray-400 outline-none focus:border-primary';
 
 export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: UserModalProps) {
   const [formData, setFormData] = useState<UserFormData>(initialFormState);
@@ -104,16 +104,16 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
   };
 
   return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2A2F63]/40 p-4 backdrop-blur-sm overflow-y-auto">
-        <div className="w-full max-w-2xl rounded-3xl border border-[#A7E0DB] bg-white p-6 shadow-2xl">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-text/40 p-4 backdrop-blur-sm overflow-y-auto">
+        <div className="w-full max-w-2xl rounded-3xl border border-secondary bg-white p-6 shadow-2xl">
 
           {/* Encabezado */}
-          <div className="flex items-center justify-between border-b border-[#E3F6F5] pb-4">
+          <div className="flex items-center justify-between border-b border-mint pb-4">
             <div>
-              <h2 className="text-xl font-bold text-[#2A2F63]">
+              <h2 className="text-xl font-bold text-text">
                 {editingUser ? 'Editar Usuario' : 'Registrar Nuevo Usuario'}
               </h2>
-              <p className="text-xs text-[#3E6D9C]">
+              <p className="text-xs text-accent">
                 {editingUser ? 'Actualiza los datos del perfil.' : 'Crea un nuevo acceso al sistema.'}
               </p>
             </div>
@@ -135,9 +135,9 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
             {/* Nombres y Apellidos */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="text-xs font-bold uppercase text-[#2A2F63]">Nombre</label>
+                <label className="text-xs font-bold uppercase text-text">Nombre</label>
                 <div className="relative mt-1 flex items-center">
-                  <User className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+                  <User className="absolute left-3 h-4 w-4 text-accent" />
                   <input
                       type="text"
                       value={formData.name}
@@ -149,9 +149,9 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase text-[#2A2F63]">Apellido</label>
+                <label className="text-xs font-bold uppercase text-text">Apellido</label>
                 <div className="relative mt-1 flex items-center">
-                  <User className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+                  <User className="absolute left-3 h-4 w-4 text-accent" />
                   <input
                       type="text"
                       value={formData.firstName}
@@ -166,9 +166,9 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
             {/* Email y Teléfono */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="text-xs font-bold uppercase text-[#2A2F63]">Correo Electrónico</label>
+                <label className="text-xs font-bold uppercase text-text">Correo Electrónico</label>
                 <div className="relative mt-1 flex items-center">
-                  <Mail className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+                  <Mail className="absolute left-3 h-4 w-4 text-accent" />
                   <input
                       type="email"
                       value={formData.email}
@@ -180,9 +180,9 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase text-[#2A2F63]">Teléfono</label>
+                <label className="text-xs font-bold uppercase text-text">Teléfono</label>
                 <div className="relative mt-1 flex items-center">
-                  <Phone className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+                  <Phone className="absolute left-3 h-4 w-4 text-accent" />
                   <input
                       type="text"
                       value={formData.phone}
@@ -197,7 +197,7 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
             {/* Usuario, DPI y Rol */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
-                <label className="text-xs font-bold uppercase text-[#2A2F63]">Usuario</label>
+                <label className="text-xs font-bold uppercase text-text">Usuario</label>
                 <input
                     type="text"
                     value={formData.userRegistry}
@@ -208,9 +208,9 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase text-[#2A2F63]">Identificación / DPI</label>
+                <label className="text-xs font-bold uppercase text-text">Identificación / DPI</label>
                 <div className="relative mt-1 flex items-center">
-                  <IdCard className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+                  <IdCard className="absolute left-3 h-4 w-4 text-accent" />
                   <input
                       type="text"
                       value={formData.identification}
@@ -222,9 +222,9 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase text-[#2A2F63]">Rol del Sistema</label>
+                <label className="text-xs font-bold uppercase text-text">Rol del Sistema</label>
                 <div className="relative mt-1 flex items-center">
-                  <Shield className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+                  <Shield className="absolute left-3 h-4 w-4 text-accent" />
                   {/* Asignación directa sin transformar el valor */}
                   <select
                       value={formData.roleAliases[0] ?? ''}
@@ -233,7 +233,7 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
                   >
                     <option value="" disabled>Selecciona un rol</option>
                     {roles.map((r) => (
-                        <option key={r.id} value={r.alias} className="text-[#2A2F63]">
+                        <option key={r.id} value={r.alias} className="text-text">
                           {r.name}
                         </option>
                     ))}
@@ -246,9 +246,9 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
             {/* Campo Contraseña (Oculto en modo Edición) */}
             {!editingUser && (
                 <div>
-                  <label className="text-xs font-bold uppercase text-[#2A2F63]">Contraseña</label>
+                  <label className="text-xs font-bold uppercase text-text">Contraseña</label>
                   <div className="relative mt-1 flex items-center">
-                    <Lock className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+                    <Lock className="absolute left-3 h-4 w-4 text-accent" />
                     <input
                         type="password"
                         placeholder="••••••••"
@@ -262,7 +262,7 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
             )}
 
             {/* Botones de acción */}
-            <div className="mt-4 flex justify-end gap-3 border-t border-[#E3F6F5] pt-4">
+            <div className="mt-4 flex justify-end gap-3 border-t border-mint pt-4">
               <button
                   type="button"
                   onClick={onClose}
@@ -274,7 +274,7 @@ export default function UserModal({ isOpen, editingUser, onClose, onSubmit }: Us
               <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-xl bg-[#5FB0C9] px-5 py-2 text-sm font-semibold text-white shadow-md hover:bg-[#3E6D9C] disabled:opacity-50 cursor-pointer"
+                  className="rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-white shadow-md hover:bg-accent disabled:opacity-50 cursor-pointer"
               >
                 {submitting ? 'Guardando...' : editingUser ? 'Actualizar' : 'Crear Usuario'}
               </button>

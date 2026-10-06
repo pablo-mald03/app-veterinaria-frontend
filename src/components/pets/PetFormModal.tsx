@@ -140,20 +140,20 @@ function PetFormContent({
     }
   };
 
-  const inputStyle = "w-full rounded-xl border border-[#A7E0DB] bg-white py-2 pl-9 pr-3 text-sm text-[#2A2F63] placeholder-gray-400 outline-none focus:border-[#5FB0C9]";
+  const inputStyle = "w-full rounded-xl border border-secondary bg-white py-2 pl-9 pr-3 text-sm text-text placeholder-gray-400 outline-none focus:border-primary";
   const inputNumberStyle = `${inputStyle} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2A2F63]/40 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl border border-[#A7E0DB]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-text/40 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl border border-secondary">
         
         {/* Encabezado */}
-        <div className="flex items-center justify-between border-b border-[#E3F6F5] pb-4">
+        <div className="flex items-center justify-between border-b border-mint pb-4">
           <div>
-            <h2 className="text-xl font-bold text-[#2A2F63]" style={{ fontFamily: "'Young Serif', serif" }}>
+            <h2 className="text-xl font-bold text-text" style={{ fontFamily: "'Young Serif', serif" }}>
               {mascotaEditando ? 'Editar Mascota' : 'Registrar Nueva Mascota'}
             </h2>
-            <p className="text-xs text-[#3E6D9C]">
+            <p className="text-xs text-accent">
               {mascotaEditando ? 'Actualiza la información médica y datos del paciente.' : 'Crea una nueva ficha de paciente en el sistema.'}
             </p>
           </div>
@@ -174,9 +174,9 @@ function PetFormContent({
           {/* Nombre y Especie */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-xs font-bold uppercase text-[#2A2F63]">Nombre de la Mascota *</label>
+              <label className="text-xs font-bold uppercase text-text">Nombre de la Mascota *</label>
               <div className="relative flex items-center mt-1">
-                <Dog className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+                <Dog className="absolute left-3 h-4 w-4 text-accent" />
                 <input
                   type="text"
                   required
@@ -189,19 +189,19 @@ function PetFormContent({
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase text-[#2A2F63]">Especie *</label>
+              <label className="text-xs font-bold uppercase text-text">Especie *</label>
               <div className="relative flex items-center mt-1">
-                <Dna className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+                <Dna className="absolute left-3 h-4 w-4 text-accent" />
                 <select
                   value={form.especie}
                   onChange={(e) => setForm({ ...form, especie: e.target.value as Especie })}
-                  className="w-full rounded-xl border border-[#A7E0DB] bg-white py-2 pl-9 pr-8 text-sm text-[#2A2F63] outline-none focus:border-[#5FB0C9] appearance-none cursor-pointer"
+                  className="w-full rounded-xl border border-secondary bg-white py-2 pl-9 pr-8 text-sm text-text outline-none focus:border-primary appearance-none cursor-pointer"
                 >
                   {especies.map((esp) => (
                     <option key={esp} value={esp}>{esp}</option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 h-4 w-4 text-[#3E6D9C] pointer-events-none" />
+                <ChevronDown className="absolute right-3 h-4 w-4 text-accent pointer-events-none" />
               </div>
             </div>
           </div>
@@ -209,9 +209,9 @@ function PetFormContent({
           {/* Raza y Color */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-xs font-bold uppercase text-[#2A2F63]">Raza</label>
+              <label className="text-xs font-bold uppercase text-text">Raza</label>
               <div className="relative flex items-center mt-1">
-                <Dna className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+                <Dna className="absolute left-3 h-4 w-4 text-accent" />
                 <input
                   type="text"
                   placeholder="Ej. French Poodle, Criollo..."
@@ -223,9 +223,9 @@ function PetFormContent({
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase text-[#2A2F63]">Color / Pelaje</label>
+              <label className="text-xs font-bold uppercase text-text">Color / Pelaje</label>
               <div className="relative flex items-center mt-1">
-                <Palette className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+                <Palette className="absolute left-3 h-4 w-4 text-accent" />
                 <input
                   type="text"
                   placeholder="Ej. Blanco con manchas café..."
@@ -240,9 +240,9 @@ function PetFormContent({
           {/* Edad y Peso */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-xs font-bold uppercase text-[#2A2F63]">Edad (Años)</label>
+              <label className="text-xs font-bold uppercase text-text">Edad (Años)</label>
               <div className="relative flex items-center mt-1">
-                <Calendar className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+                <Calendar className="absolute left-3 h-4 w-4 text-accent" />
                 <input
                   type="number"
                   min="0"
@@ -260,9 +260,9 @@ function PetFormContent({
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase text-[#2A2F63]">Peso (Kg)</label>
+              <label className="text-xs font-bold uppercase text-text">Peso (Kg)</label>
               <div className="relative flex items-center mt-1">
-                <Scale className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+                <Scale className="absolute left-3 h-4 w-4 text-accent" />
                 <input
                   type="number"
                   min="0"
@@ -281,9 +281,9 @@ function PetFormContent({
 
           {/* Dueño / Cliente */}
           <div className="relative" ref={dropdownRef}>
-            <label className="text-xs font-bold uppercase text-[#2A2F63]">Dueño / Cliente *</label>
+            <label className="text-xs font-bold uppercase text-text">Dueño / Cliente *</label>
             <div className="relative flex items-center mt-1">
-              <User className="absolute left-3 h-4 w-4 text-[#3E6D9C]" />
+              <User className="absolute left-3 h-4 w-4 text-accent" />
               <input
                 type="text"
                 placeholder="Escribe el nombre o DPI del dueño..."
@@ -298,11 +298,11 @@ function PetFormContent({
                 }}
                 className={inputStyle}
               />
-              <Search className="absolute right-3 h-4 w-4 text-[#3E6D9C] pointer-events-none" />
+              <Search className="absolute right-3 h-4 w-4 text-accent pointer-events-none" />
             </div>
 
             {isClientDropdownOpen && (
-              <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-[#A7E0DB] bg-white shadow-xl">
+              <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-secondary bg-white shadow-xl">
                 {clientesFiltrados.length > 0 ? (
                   clientesFiltrados.map((cliente) => {
                     const nombreCliente = `${cliente.firstName ?? cliente.firtsName ?? ''} ${cliente.lastName}`.trim();
@@ -313,15 +313,15 @@ function PetFormContent({
                         type="button"
                         key={cliente.id}
                         onClick={() => handleSelectCliente(cliente)}
-                        className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors hover:bg-[#E3F6F5] ${
-                          isSelected ? 'bg-[#E3F6F5] font-semibold text-[#2A2F63]' : 'text-gray-700'
+                        className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors hover:bg-mint ${
+                          isSelected ? 'bg-mint font-semibold text-text' : 'text-gray-700'
                         }`}
                       >
                         <div>
-                          <p className="text-sm font-medium text-[#2A2F63]">{nombreCliente}</p>
-                          {cliente.dpi && <p className="text-xs text-[#3E6D9C]">DPI: {cliente.dpi}</p>}
+                          <p className="text-sm font-medium text-text">{nombreCliente}</p>
+                          {cliente.dpi && <p className="text-xs text-accent">DPI: {cliente.dpi}</p>}
                         </div>
-                        {isSelected && <Check className="h-4 w-4 text-[#5FB0C9]" />}
+                        {isSelected && <Check className="h-4 w-4 text-primary" />}
                       </button>
                     );
                   })
@@ -336,9 +336,9 @@ function PetFormContent({
 
           {/* Observaciones */}
           <div>
-            <label className="text-xs font-bold uppercase text-[#2A2F63]">Observaciones / Notas Clínicas</label>
+            <label className="text-xs font-bold uppercase text-text">Observaciones / Notas Clínicas</label>
             <div className="relative flex mt-1">
-              <FileText className="absolute left-3 top-2.5 h-4 w-4 text-[#3E6D9C]" />
+              <FileText className="absolute left-3 top-2.5 h-4 w-4 text-accent" />
               <textarea
                 rows={2}
                 placeholder="Alergias, temperamento, señas particulares..."
@@ -350,7 +350,7 @@ function PetFormContent({
           </div>
 
           {/* Botones */}
-          <div className="mt-4 flex justify-end gap-3 border-t border-[#E3F6F5] pt-4">
+          <div className="mt-4 flex justify-end gap-3 border-t border-mint pt-4">
             <button
               type="button"
               onClick={onClose}
@@ -362,7 +362,7 @@ function PetFormContent({
             <button
               type="submit"
               disabled={guardando}
-              className="rounded-xl bg-[#5FB0C9] px-5 py-2 text-sm font-semibold text-white shadow-md hover:bg-[#3E6D9C] disabled:opacity-50 cursor-pointer"
+              className="rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-white shadow-md hover:bg-accent disabled:opacity-50 cursor-pointer"
             >
               {guardando ? 'Guardando...' : mascotaEditando ? 'Actualizar' : 'Guardar Mascota'}
             </button>

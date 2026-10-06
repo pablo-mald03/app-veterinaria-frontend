@@ -131,16 +131,16 @@ export default function PetTable() {
     <div className="flex min-h-full flex-col gap-8 bg-white p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[#2A2F63]" style={{ fontFamily: "'Young Serif', serif" }}>
+          <h1 className="text-3xl font-bold text-text" style={{ fontFamily: "'Young Serif', serif" }}>
             Mascotas
           </h1>
-          <p className="mt-1 text-sm text-[#2A2F63]/70">
+          <p className="mt-1 text-sm text-text/70">
             Pacientes registrados y su expediente clínico.
           </p>
         </div>
         <button
           onClick={abrirCrear}
-          className="flex items-center justify-center gap-2 rounded-xl bg-[#5FB0C9] px-4 py-2.5 font-semibold text-white shadow-md transition-colors hover:bg-[#3E6D9C]"
+          className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-white shadow-md transition-colors hover:bg-accent"
         >
           <Plus className="h-5 w-5" />
           Nueva Mascota
@@ -149,19 +149,19 @@ export default function PetTable() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2A2F63]/50" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text/50" />
           <input
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar por mascota o dueño..."
-            className="w-full rounded-xl border border-[#A7E0DB] bg-white py-2.5 pl-10 pr-4 text-sm text-[#2A2F63] outline-none focus:border-[#5FB0C9] focus:ring-2 focus:ring-[#5FB0C9]/30"
+            className="w-full rounded-xl border border-secondary bg-white py-2.5 pl-10 pr-4 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
           />
         </div>
         <select
           value={especieFiltro}
           onChange={(e) => setEspecieFiltro(e.target.value as Especie | "TODAS")}
-          className="rounded-xl border border-[#A7E0DB] bg-white px-4 py-2.5 text-sm text-[#2A2F63] outline-none focus:border-[#5FB0C9] focus:ring-2 focus:ring-[#5FB0C9]/30"
+          className="rounded-xl border border-secondary bg-white px-4 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
         >
           {especies.map((esp) => (
             <option key={esp} value={esp}>
@@ -173,20 +173,20 @@ export default function PetTable() {
 
       <div className="overflow-hidden rounded-2xl bg-white shadow-md">
         {cargando ? (
-          <div className="p-14 text-center text-sm text-[#2A2F63]/70">Cargando mascotas...</div>
+          <div className="p-14 text-center text-sm text-text/70">Cargando mascotas...</div>
         ) : error ? (
           <div className="p-14 text-center text-sm text-red-600">{error}</div>
         ) : mascotasFiltradas.length === 0 ? (
-          <div className="m-4 flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[#A7E0DB] py-14 text-center">
-            <p className="text-sm font-medium text-[#2A2F63]">No se encontraron mascotas</p>
-            <p className="text-xs text-[#2A2F63]/60">
+          <div className="m-4 flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-secondary py-14 text-center">
+            <p className="text-sm font-medium text-text">No se encontraron mascotas</p>
+            <p className="text-xs text-text/60">
               Ajusta la búsqueda o el filtro de especie, o registra una nueva.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-[#E3F6F5] text-xs font-semibold uppercase tracking-wide text-[#2A2F63]/70">
+              <thead className="bg-mint text-xs font-semibold uppercase tracking-wide text-text/70">
                 <tr>
                   <th className="px-6 py-3">Nombre</th>
                   <th className="px-6 py-3">Especie / Raza</th>
@@ -196,26 +196,26 @@ export default function PetTable() {
                   <th className="px-6 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E3F6F5]">
+              <tbody className="divide-y divide-mint">
                 {mascotasFiltradas.map((m) => (
-                  <tr key={m.id} className="transition-colors hover:bg-[#E3F6F5]/40">
-                    <td className="px-6 py-4 font-medium text-[#2A2F63]">{m.name}</td>
-                    <td className="px-6 py-4 text-[#2A2F63]/80">{m.especie} · {m.breed}</td>
-                    <td className="px-6 py-4 text-[#2A2F63]/80">{m.age} años</td>
-                    <td className="px-6 py-4 text-[#2A2F63]/80">{m.weight} kg</td>
-                    <td className="px-6 py-4 text-[#2A2F63]/80">{m.ownerName ?? "—"}</td>
+                  <tr key={m.id} className="transition-colors hover:bg-mint/40">
+                    <td className="px-6 py-4 font-medium text-text">{m.name}</td>
+                    <td className="px-6 py-4 text-text/80">{m.especie} · {m.breed}</td>
+                    <td className="px-6 py-4 text-text/80">{m.age} años</td>
+                    <td className="px-6 py-4 text-text/80">{m.weight} kg</td>
+                    <td className="px-6 py-4 text-text/80">{m.ownerName ?? "—"}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => abrirExpediente(m)}
-                          className="rounded-lg p-2 text-[#3E6D9C] transition-colors hover:bg-[#A7E0DB]/30"
+                          className="rounded-lg p-2 text-accent transition-colors hover:bg-secondary/30"
                           aria-label={`Ver expediente de ${m.name}`}
                         >
                           <FileText className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => abrirEditar(m)}
-                          className="rounded-lg p-2 text-[#3E6D9C] transition-colors hover:bg-[#A7E0DB]/30"
+                          className="rounded-lg p-2 text-accent transition-colors hover:bg-secondary/30"
                           aria-label={`Editar a ${m.name}`}
                         >
                           <Pencil className="h-4 w-4" />

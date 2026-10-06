@@ -97,17 +97,17 @@ export default function UserTable() {
             {/* Encabezado */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-[#2A2F63]" style={{ fontFamily: "'Young Serif', serif" }}>
+                    <h1 className="text-3xl font-bold text-text" style={{ fontFamily: "'Young Serif', serif" }}>
                         Gestión de Usuarios
                     </h1>
-                    <p className="mt-1 text-sm text-[#2A2F63]/70">
+                    <p className="mt-1 text-sm text-text/70">
                         Administración de accesos y credenciales del personal de Happy Pets.
                     </p>
                 </div>
 
                 <button
                     onClick={handleOpenCreate}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-[#5FB0C9] px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-[#3E6D9C] cursor-pointer"
+                    className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-accent cursor-pointer"
                 >
                     <UserPlus className="h-5 w-5" />
                     <span>Registrar Usuario</span>
@@ -115,21 +115,21 @@ export default function UserTable() {
             </div>
 
             {/* Buscador */}
-            <div className="flex items-center gap-3 rounded-2xl border border-[#A7E0DB]/50 bg-white p-3 shadow-sm">
-                <Search className="h-5 w-5 text-[#3E6D9C]" />
+            <div className="flex items-center gap-3 rounded-2xl border border-secondary/50 bg-white p-3 shadow-sm">
+                <Search className="h-5 w-5 text-accent" />
                 <input
                     type="text"
                     placeholder="Buscar por nombre, correo o usuario..."
                     value={busqueda}
                     onChange={(e) => setBusqueda(e.target.value)}
-                    className="w-full text-sm text-[#2A2F63] outline-none placeholder:text-[#2A2F63]/40"
+                    className="w-full text-sm text-text outline-none placeholder:text-text/40"
                 />
             </div>
 
             {/* Tabla de Usuarios */}
-            <div className="overflow-hidden rounded-2xl border border-[#A7E0DB]/50 bg-white shadow-md">
-                <table className="w-full text-left text-sm text-[#2A2F63]">
-                    <thead className="bg-[#E3F6F5] text-xs font-bold uppercase tracking-wider text-[#3E6D9C]">
+            <div className="overflow-hidden rounded-2xl border border-secondary/50 bg-white shadow-md">
+                <table className="w-full text-left text-sm text-text">
+                    <thead className="bg-mint text-xs font-bold uppercase tracking-wider text-accent">
                     <tr>
                         <th className="p-4">Usuario</th>
                         <th className="p-4">Identificación</th>
@@ -139,36 +139,36 @@ export default function UserTable() {
                         <th className="p-4 text-center">Acciones</th>
                     </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E3F6F5]">
+                    <tbody className="divide-y divide-mint">
                     {loading ? (
                         <tr>
-                            <td colSpan={6} className="p-8 text-center text-[#2A2F63]/60">
+                            <td colSpan={6} className="p-8 text-center text-text/60">
                                 <div className="flex items-center justify-center gap-2">
-                                    <RefreshCw className="h-5 w-5 animate-spin text-[#5FB0C9]" />
+                                    <RefreshCw className="h-5 w-5 animate-spin text-primary" />
                                     <span>Cargando usuarios...</span>
                                 </div>
                             </td>
                         </tr>
                     ) : usuariosFiltrados.length === 0 ? (
                         <tr>
-                            <td colSpan={6} className="p-8 text-center text-[#2A2F63]/60">
+                            <td colSpan={6} className="p-8 text-center text-text/60">
                                 No hay usuarios registrados que coincidan con la búsqueda.
                             </td>
                         </tr>
                     ) : (
                         usuariosFiltrados.map((u) => (
-                            <tr key={u.id} className="transition-colors hover:bg-[#E3F6F5]/30">
+                            <tr key={u.id} className="transition-colors hover:bg-mint/30">
                                 <td className="p-4">
-                                    <div className="font-semibold text-[#2A2F63]">{u.name} {u.firstName}</div>
-                                    <div className="text-xs font-medium text-[#3E6D9C]">@{u.userRegistry}</div>
+                                    <div className="font-semibold text-text">{u.name} {u.firstName}</div>
+                                    <div className="text-xs font-medium text-accent">@{u.userRegistry}</div>
                                 </td>
                                 <td className="p-4 font-mono text-xs">{u.identification}</td>
                                 <td className="p-4">
                                     <div>{u.email}</div>
-                                    <div className="text-xs text-[#2A2F63]/60">{u.phone}</div>
+                                    <div className="text-xs text-text/60">{u.phone}</div>
                                 </td>
                                 <td className="p-4">
-                    <span className="inline-flex items-center gap-1 rounded-lg bg-[#A7E0DB]/30 px-2.5 py-1 text-xs font-bold text-[#3E6D9C]">
+                    <span className="inline-flex items-center gap-1 rounded-lg bg-secondary/30 px-2.5 py-1 text-xs font-bold text-accent">
                       <ShieldCheck className="h-3.5 w-3.5" />
                         {u.roles?.length > 0 ? u.roles[0].name : 'Rol indefinido'}
                     </span>
@@ -186,7 +186,7 @@ export default function UserTable() {
                                     <div className="flex justify-center gap-2">
                                         <button
                                             onClick={() => handleOpenEdit(u)}
-                                            className="rounded-lg p-2 text-[#3E6D9C] hover:bg-[#E3F6F5] cursor-pointer"
+                                            className="rounded-lg p-2 text-accent hover:bg-mint cursor-pointer"
                                             title="Editar usuario"
                                         >
                                             <Edit3 className="h-4 w-4" />

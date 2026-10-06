@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }), [loading, router, user]);
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center text-sm text-[#2A2F63]">Verificando sesión...</div>;
+    return <div className="flex min-h-screen items-center justify-center text-sm text-text">Verificando sesión...</div>;
   }
 
   if (!user) return null;

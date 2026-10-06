@@ -15,7 +15,7 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
     const allowed = required === null || hasPermission(required);
 
     useEffect(() => {
-        if (!allowed) router.replace("/dashboard/forbidden");
+        if (!allowed) router.replace("/dashboard");
     }, [allowed, router]);
 
     return allowed ? <>{children}</> : null;

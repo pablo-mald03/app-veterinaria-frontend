@@ -8,7 +8,7 @@ export const ENDPOINTS = {
     LOGOUT: `${API_BASE_URL}/auth/logout`,
     RECOVER_PASSWORD: `${API_BASE_URL}/auth/recover-password`,
   },
-  
+
   USERS: {
     BASE: `${API_BASE_URL}/users`,
     REGISTER: `${API_BASE_URL}/users/register`,
@@ -36,8 +36,13 @@ export const ENDPOINTS = {
     UPDATE: (id: number) => `${API_BASE_URL}/clients/${id}`,
     DELETE: (id: number) => `${API_BASE_URL}/clients/${id}`,
   },
-
+  //Role module
   ROLES: {
     LIST: `${API_BASE_URL}/roles`,
+  },
+  //Permissions module
+  PERMISSIONS: {
+    LIST: `${API_BASE_URL}/permissions`,
+    CATALOG: `${API_BASE_URL}/permissions/catalog`,
   },
 };

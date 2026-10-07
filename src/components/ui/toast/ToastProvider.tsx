@@ -13,7 +13,17 @@ import {
 const MAX_TOASTS = 5;
 const AUTO_DISMISS_MS = 5000;
 
-// --- Contexto de ACCIONES (referencia estable) ---
+let toastCounter = 0;
+
+function generateId(): string {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+        return crypto.randomUUID();
+    }
+    toastCounter += 1;
+    return `toast-${Date.now()}-${toastCounter}`;
+}
+
+// --- Context for actions ---
 interface ToastActions {
     show: (toast: ToastInput) => string;
     remove: (id: string) => void;
@@ -48,7 +58,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
     const show = useCallback(
         (input: ToastInput) => {
-            const id = crypto.randomUUID();
+            const id = generateId();
             setToasts((current) => [{ ...input, id }, ...current].slice(0, MAX_TOASTS));
 
             const timeout = setTimeout(() => remove(id), AUTO_DISMISS_MS);

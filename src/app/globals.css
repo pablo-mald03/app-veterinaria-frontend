@@ -35,6 +35,8 @@
   --font-display: 'Young Serif', serif;
 
   --color-warning: #B45309;
+  --color-warning-soft: #FFFBEB;
+  --color-warning-border: #FDE68A;
 
   --animate-field-message: field-message-in 0.15s ease-out;
 

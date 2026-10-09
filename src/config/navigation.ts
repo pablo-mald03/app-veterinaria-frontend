@@ -26,7 +26,7 @@ export const NAV_ITEMS: NavItem[] = [
     { name: "Pacientes", href: "/dashboard/pets", icon: PawPrint, permission: "mascotas:ver" },
     { name: "Clientes", href: "/dashboard/clients", icon: Contact, permission: "clientes:ver" },
     { name: "Habitaciones", href: "/dashboard/rooms", icon: BedDouble, permission: "salas:ver" },
-    { name: "Agenda de Citas", href: "/agenda", icon: CalendarDays, permission: "citas:ver" },
+    { name: "Agenda de Citas", href: "/dashboard/appointment", icon: CalendarDays, permission: "citas:ver" },
     { name: "Farmacia e Inventario", href: "/farmacia", icon: Pill, permission: "inventario:ver" },
     // TEMPORAL: el catálogo de vacunas debería vivir dentro de Inventario; se deja aquí
     // mientras ese módulo no exista, para poder insertar vacunas sin migraciones manuales.

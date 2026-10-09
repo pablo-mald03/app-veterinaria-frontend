@@ -57,11 +57,21 @@ export const ENDPOINTS = {
   },
   //Appointments module (citas/consultas; rama feature/module-appointments, aún no está en develop)
   APPOINTMENTS: {
+    // Rutas que ya existen en develop (las usa el módulo de consultas)
     BASE: `${API_BASE_URL}/appointments`,
     DETAIL: (id: number) => `${API_BASE_URL}/appointments/${id}`,
     HISTORY_BY_PET: (petId: number) => `${API_BASE_URL}/appointments/pet/${petId}/history`,
     UPDATE_DIAGNOSIS: (id: number) => `${API_BASE_URL}/appointments/${id}/diagnosis`,
     UPDATE_STATUS: (id: number) => `${API_BASE_URL}/appointments/${id}/status`,
+
+    // Rutas que usa la agenda de citas
+    LIST: `${API_BASE_URL}/appointments`,
+    CREATE: `${API_BASE_URL}/appointments`,
+    UPDATE: (id: number) => `${API_BASE_URL}/appointments/${id}`,
+    DELETE: (id: number) => `${API_BASE_URL}/appointments/${id}`,
+    STATUS: (id: number) => `${API_BASE_URL}/appointments/${id}/status`,
+    DIAGNOSIS: (id: number) => `${API_BASE_URL}/appointments/${id}/diagnosis`,
+    PET_HISTORY: (petId: number) => `${API_BASE_URL}/appointments/pet/${petId}/history`,
   },
   //Vaccination module (contrato REAL del backend, rama develop)
   VACCINES: {

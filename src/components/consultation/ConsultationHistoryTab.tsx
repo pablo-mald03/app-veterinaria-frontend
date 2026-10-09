@@ -1,72 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import { FileText, Plus, RefreshCw } from "lucide-react";
-import Can from "@/components/auth/Can";
+import { FileText, RefreshCw } from "lucide-react";
 import Alert from "@/components/ui/common/Alert";
 import Button from "@/components/ui/common/Button";
 import Spinner from "@/components/ui/common/Spinner";
-import { useToast } from "@/components/ui/toast/ToastProvider";
-import ConsultationModal from "@/components/consultation/ConsultationModal";
 import { formatCost } from "@/lib/consultation/money";
-import { createConsultation } from "@/services/consultationService";
 import type { Mascota } from "@/types/pet";
-import type { ConsultationInput, ConsultationView } from "@/types/consultation";
+import type { ConsultationView } from "@/types/consultation";
 
 interface ConsultationHistoryTabProps {
     mascota: Mascota;
     history: ConsultationView[];
     loading: boolean;
     error: string | null;
-    doctorId: number | null;
-    /** Vuelve a pedir el historial (se llama después de registrar una consulta). */
     onReload: () => void;
 }
 
-//Pestaña "Consultas" del expediente: historial clínico + botón para registrar
-export default function ConsultationHistoryTab({
-    mascota,
-    history,
-    loading,
-    error,
-    doctorId,
-    onReload,
-}: ConsultationHistoryTabProps) {
-    const toast = useToast();
-    const [formOpen, setFormOpen] = useState(false);
-
-    const handleSave = async (input: ConsultationInput) => {
-        try {
-            if (doctorId === null) {
-                throw new Error("No se pudo identificar al veterinario de la sesión actual.");
-            }
-
-            await createConsultation(Number(mascota.id), input, doctorId);
-            toast.success("Consulta registrada", mascota.name);
-            setFormOpen(false);
-            onReload();
-        } catch (err) {
-            const message = err instanceof Error ? err.message : "No se pudo registrar la consulta.";
-            toast.error(message, "Error al registrar consulta");
-            throw err;
-        }
-    };
-
+// Pestaña "Consultas" del expediente: solo lectura del historial clínico.
+// Registrar una consulta es responsabilidad de otro módulo (no se trabaja aquí);
+// esta pestaña únicamente lista las consultas ya registradas para la mascota.
+export default function ConsultationHistoryTab({ mascota, history, loading, error, onReload }: ConsultationHistoryTabProps) {
     return (
         <div>
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-sm font-bold text-text">Historial de consultas</h3>
-
-                <Can permission="citas:editar">
-                    <Button
-                        type="button"
-                        icon={<Plus className="h-4 w-4" />}
-                        onClick={() => setFormOpen(true)}
-                    >
-                        Registrar consulta
-                    </Button>
-                </Can>
-            </div>
+            <h3 className="mb-3 text-sm font-bold text-text">Historial de consultas</h3>
 
             {loading ? (
                 <div className="flex items-center justify-center gap-2 py-10 text-sm text-text/70">
@@ -90,7 +46,7 @@ export default function ConsultationHistoryTab({
                     <FileText className="h-6 w-6 text-accent" aria-hidden="true" />
                     <p className="text-sm font-medium text-text">Aún no hay consultas registradas</p>
                     <p className="text-xs text-text/60">
-                        Cuando se registre una consulta para esta mascota, va a aparecer acá.
+                        Cuando se registre una consulta para {mascota.name}, va a aparecer acá.
                     </p>
                 </div>
             ) : (
@@ -110,8 +66,6 @@ export default function ConsultationHistoryTab({
                     ))}
                 </ul>
             )}
-
-            <ConsultationModal open={formOpen} mascota={mascota} onClose={() => setFormOpen(false)} onSave={handleSave} />
         </div>
     );
 }

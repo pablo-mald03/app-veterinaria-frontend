@@ -44,7 +44,7 @@ interface ExpedienteContentProps {
 }
 
 function ExpedienteContent({ mascota, initialTab, onClose }: ExpedienteContentProps) {
-  const { user, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
   const canViewVaccines = hasPermission("vacunacion:ver");
 
   const tabs: { value: ExpedienteTab; label: string }[] = canViewVaccines
@@ -58,7 +58,7 @@ function ExpedienteContent({ mascota, initialTab, onClose }: ExpedienteContentPr
 
   const petId = Number(mascota.id);
   const validPetId = Number.isInteger(petId) ? petId : null;
-  const doctorId = Number.isInteger(Number(user?.id)) ? Number(user?.id) : null;
+  
 
   const consultations = useConsultationHistory(validPetId);
   // Se pasa null cuando no hay permiso: así no se hace ninguna petición.
@@ -143,7 +143,6 @@ function ExpedienteContent({ mascota, initialTab, onClose }: ExpedienteContentPr
               history={consultations.history}
               loading={consultations.loading}
               error={consultations.error}
-              doctorId={doctorId}
               onReload={consultations.reload}
             />
           )}

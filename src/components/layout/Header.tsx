@@ -58,7 +58,6 @@ export default function Header() {
           <NotificationBell />
         </Can>
 
-        {/* Sección de Usuario */}
         <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-secondary/50 bg-white/60 px-2 py-1.5 shadow-sm transition-all hover:bg-white hover:shadow-md md:gap-4 md:px-4 md:py-2">
           <div className="hidden flex-col items-end sm:flex">
             <p className="max-w-[160px] truncate font-bold text-text">{user.name}</p>

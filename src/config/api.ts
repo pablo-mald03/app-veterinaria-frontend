@@ -36,6 +36,16 @@ export const ENDPOINTS = {
     UPDATE: (id: number) => `${API_BASE_URL}/clients/${id}`,
     DELETE: (id: number) => `${API_BASE_URL}/clients/${id}`,
   },
+  //Vaccination module
+  //VACCINES (catálogo) ya existe en el backend (rama feature/vaccination).
+  //VACCINATIONS (carnet por mascota y próximas a vencer) es el contrato PROPUESTO: confirmar con el backend.
+  VACCINES: {
+    LIST: `${API_BASE_URL}/vaccines`,
+  },
+  VACCINATIONS: {
+    BY_PET: (petId: number) => `${API_BASE_URL}/pets/${petId}/vaccinations`,
+    UPCOMING: (days: number) => `${API_BASE_URL}/vaccinations/upcoming?days=${days}`,
+  },
   //Permissions module
   PERMISSIONS: {
     LIST: `${API_BASE_URL}/permissions`,

@@ -6,6 +6,7 @@ import {
     Folder,
     LayoutDashboard,
     PawPrint,
+    Syringe,
     Pill,
     ScrollText,
     ShieldCheck,
@@ -25,6 +26,9 @@ export const NAV_ITEMS: NavItem[] = [
     { name: "Clientes", href: "/dashboard/clients", icon: Contact, permission: "clientes:ver" },
     { name: "Agenda de Citas", href: "/agenda", icon: CalendarDays, permission: "citas:ver" },
     { name: "Farmacia e Inventario", href: "/farmacia", icon: Pill, permission: "inventario:ver" },
+    // TEMPORAL: el catálogo de vacunas debería vivir dentro de Inventario; se deja aquí
+    // mientras ese módulo no exista, para poder insertar vacunas sin migraciones manuales.
+    { name: "Catálogo de Vacunas", href: "/dashboard/vaccines", icon: Syringe, permission: "vacunacion:ver" },
     { name: "Gestión de Documentos", href: "/documentos", icon: Folder, permission: "documentos:ver" },
     { name: "Facturación", href: "/facturacion", icon: CreditCard, permission: "facturacion:ver" },
     { name: "Recursos Humanos", href: "/dashboard/users", icon: Users, permission: "usuarios:ver" },

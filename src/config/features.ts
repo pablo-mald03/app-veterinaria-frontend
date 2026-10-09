@@ -1,7 +1,8 @@
 // Banderas de funcionalidad para el desarrollo del frontend.
 
 /**
- * Activa los datos simulados (mocks) del módulo de vacunación.
+ * Activa los datos simulados (mocks) de módulos que aún no tienen backend conectado
+ * (hoy: consultas; antes también vacunación, antes de que su PR se fusionara).
  *
  * - Solo se activa con NEXT_PUBLIC_USE_MOCKS=true en el .env.local.
  * - NUNCA se activa en producción (NODE_ENV === "production"), aunque la variable exista,

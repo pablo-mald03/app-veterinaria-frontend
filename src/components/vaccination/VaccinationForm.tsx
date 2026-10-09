@@ -8,7 +8,7 @@ import Dropdown, { type DropdownOption } from "@/components/ui/common/Dropdown";
 import TextArea from "@/components/ui/common/TextArea";
 import TextField from "@/components/ui/common/TextField";
 import { useField } from "@/hooks/useField";
-import { addDays, formatDate, parseIsoDate, toIsoDate } from "@/lib/vaccination/dates";
+import { formatDate, parseIsoDate, toIsoDate } from "@/lib/vaccination/dates";
 import {
     countDoses,
     estimateNextDoseDate,
@@ -17,7 +17,6 @@ import {
 } from "@/lib/vaccination/records";
 import { isVaccineForSpecies } from "@/lib/vaccination/species";
 import {
-    VACCINATION_MAX_BACKDATE_DAYS,
     vaccinationDateValidator,
     vaccinationLotSchema,
     vaccinationNotesSchema,
@@ -51,8 +50,6 @@ export default function VaccinationForm({
     onCancel,
 }: VaccinationFormProps) {
     const today = toIsoDate(new Date());
-    // Fecha más antigua que se puede elegir (el selector también la respeta).
-    const oldestDate = addDays(today, -VACCINATION_MAX_BACKDATE_DAYS);
 
     const [submitting, setSubmitting] = useState(false);
     const [generalError, setGeneralError] = useState<string | null>(null);
@@ -184,7 +181,6 @@ export default function VaccinationForm({
                 label="Fecha de aplicación"
                 icon={<CalendarCheck />}
                 type="date"
-                min={oldestDate}
                 max={today}
                 {...appliedAt.props}
             />

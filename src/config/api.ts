@@ -1,5 +1,5 @@
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "/api/v1";
+    process.env.NEXT_PUBLIC_API_URL || "/api/v1";
 
 // Ruta del controlador de carnets tal como está hoy en el backend (ver ENDPOINTS.VACCINATION_CARDS).
 const VACCINATION_CARDS_PATH = "/vaccination-cards";
@@ -39,7 +39,18 @@ export const ENDPOINTS = {
     UPDATE: (id: number) => `${API_BASE_URL}/clients/${id}`,
     DELETE: (id: number) => `${API_BASE_URL}/clients/${id}`,
   },
-  //Logs module
+
+
+  // Rooms module
+  ROOMS: {
+    LIST: (params: URLSearchParams) => `${API_BASE_URL}/rooms?${params}`,
+    CREATE: `${API_BASE_URL}/rooms`,
+    DETAIL: (id: number) => `${API_BASE_URL}/rooms/${id}`,
+    UPDATE: (id: number) => `${API_BASE_URL}/rooms/${id}`,
+    STATUS: (id: number) => `${API_BASE_URL}/rooms/${id}/status`,
+  },
+
+  // Logs module
   LOGS: {
     LIST: (params: URLSearchParams) => `${API_BASE_URL}/logs?${params}`,
     MODULES: `${API_BASE_URL}/logs/modules`,
@@ -74,7 +85,7 @@ export const ENDPOINTS = {
     LIST: `${API_BASE_URL}/permissions`,
     CATALOG: `${API_BASE_URL}/permissions/catalog`,
   },
-  //Role module
+  // Role module
   ROLES: {
     LIST: `${API_BASE_URL}/roles`,
     DETAIL: (id: number) => `${API_BASE_URL}/roles/${id}`,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Layers, ListOrdered, RefreshCw, ScrollText, X } from "lucide-react";
 import { logService } from "@/services/logService";
 import type { LogResponse } from "@/types/log";
@@ -25,6 +25,14 @@ const DIRECTION_OPTIONS: DropdownOption[] = [
     { value: "asc", label: "Más antiguos primero" },
 ];
 
+interface LogResult {
+    key: string;
+    logs: LogResponse[];
+    totalPages: number;
+    totalElements: number;
+    error: string | null;
+}
+
 const dateFormatter = new Intl.DateTimeFormat("es-GT", { dateStyle: "medium", timeStyle: "medium" });
 
 function formatDate(iso: string): string {
@@ -36,15 +44,12 @@ function formatDate(iso: string): string {
 export default function LogTable() {
     const toast = useToast();
 
-    const [logs, setLogs] = useState<LogResponse[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [loadError, setLoadError] = useState<string | null>(null);
+    const [result, setResult] = useState<LogResult | null>(null);
+    const [reloadToken, setReloadToken] = useState(0);
 
     const [page, setPage] = useState(0);
     const [size, setSize] = useState("20");
     const [direction, setDirection] = useState<"asc" | "desc">("desc");
-    const [totalPages, setTotalPages] = useState(0);
-    const [totalElements, setTotalElements] = useState(0);
 
     const [moduleFilter, setModuleFilter] = useState("");
     const [createdFrom, setCreatedFrom] = useState("");
@@ -53,45 +58,54 @@ export default function LogTable() {
     const [modules, setModules] = useState<string[]>([]);
     const [loadingModules, setLoadingModules] = useState(true);
 
-    // Evita que una respuesta lenta pise a una más reciente
-    const requestId = useRef(0);
-
     const rangeError =
         createdFrom && createdTo && createdFrom > createdTo
             ? "La fecha inicial no puede ser mayor a la final."
             : undefined;
 
-    const loadLogs = useCallback(async () => {
+    const queryKey = [page, size, direction, moduleFilter, createdFrom, createdTo, reloadToken].join("|");
+    const loading = !rangeError && result?.key !== queryKey;
+
+    const logs = result?.logs ?? [];
+    const totalPages = result?.totalPages ?? 0;
+    const totalElements = result?.totalElements ?? 0;
+    const loadError = result?.key === queryKey ? result.error : null;
+
+    useEffect(() => {
         if (rangeError) return;
-        const current = ++requestId.current;
-        setLoading(true);
-        setLoadError(null);
-        try {
-            const data = await logService.getAll({
+
+        let active = true;
+        logService
+            .getAll({
                 page,
                 size: Number(size),
                 direction,
                 module: moduleFilter || undefined,
                 createdFrom: createdFrom || undefined,
                 createdTo: createdTo || undefined,
+            })
+            .then((data) => {
+                if (!active) return;
+                setResult({
+                    key: queryKey,
+                    logs: data.logs ?? [],
+                    totalPages: data.totalPages,
+                    totalElements: data.totalElements,
+                    error: null,
+                });
+            })
+            .catch((err) => {
+                if (!active) return;
+                const message = err instanceof Error ? err.message : "No se pudieron cargar los logs.";
+                setResult({ key: queryKey, logs: [], totalPages: 0, totalElements: 0, error: message });
+                toast.error(message, "Error al cargar logs");
             });
-            if (current !== requestId.current) return;
-            setLogs(data.logs ?? []);
-            setTotalPages(data.totalPages);
-            setTotalElements(data.totalElements);
-        } catch (err) {
-            if (current !== requestId.current) return;
-            const message = err instanceof Error ? err.message : "No se pudieron cargar los logs.";
-            setLoadError(message);
-            toast.error(message, "Error al cargar logs");
-        } finally {
-            if (current === requestId.current) setLoading(false);
-        }
-    }, [page, size, direction, moduleFilter, createdFrom, createdTo, rangeError, toast]);
 
-    useEffect(() => {
-        void loadLogs();
-    }, [loadLogs]);
+        // Si cambian los filtros antes de responder, se descarta la respuesta vieja
+        return () => {
+            active = false;
+        };
+    }, [queryKey, rangeError, page, size, direction, moduleFilter, createdFrom, createdTo, toast]);
 
     useEffect(() => {
         let active = true;
@@ -174,7 +188,7 @@ export default function LogTable() {
                         type="button"
                         variant="ghost"
                         icon={<RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />}
-                        onClick={() => void loadLogs()}
+                        onClick={() => setReloadToken((n) => n + 1)}
                         disabled={loading || Boolean(rangeError)}
                         className="border border-secondary"
                     >

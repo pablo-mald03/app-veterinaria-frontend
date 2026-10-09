@@ -44,11 +44,14 @@ export const ENDPOINTS = {
     LIST: (params: URLSearchParams) => `${API_BASE_URL}/logs?${params}`,
     MODULES: `${API_BASE_URL}/logs/modules`,
   },
-  
+  //Vaccination module (contrato REAL del backend, rama develop)
   VACCINES: {
     LIST: `${API_BASE_URL}/vaccines`,
   },
   VACCINATION_CARDS: {
+    // OJO: el backend declara @RequestMapping("/api/vaccination-cards") y ya existe el context-path
+    // /api/v1, por eso queda "/api/v1/api/vaccination-cards". Cuando lo corrijan en el backend,
+    // cambiar VACCINATION_CARDS_PATH a "/vaccination-cards" (único lugar).
     BY_PET: (petId: number) => `${API_BASE_URL}${VACCINATION_CARDS_PATH}/pet/${petId}`,
   },
   VACCINATION_RECORDS: {

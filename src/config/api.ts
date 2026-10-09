@@ -36,6 +36,11 @@ export const ENDPOINTS = {
     UPDATE: (id: number) => `${API_BASE_URL}/clients/${id}`,
     DELETE: (id: number) => `${API_BASE_URL}/clients/${id}`,
   },
+  //Logs module
+  LOGS: {
+    LIST: (params: URLSearchParams) => `${API_BASE_URL}/logs?${params}`,
+    MODULES: `${API_BASE_URL}/logs/modules`,
+  },
   //Permissions module
   PERMISSIONS: {
     LIST: `${API_BASE_URL}/permissions`,

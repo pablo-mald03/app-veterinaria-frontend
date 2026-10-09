@@ -183,9 +183,14 @@ export default function UserForm({ editingUser, onSubmit, onCancel }: UserFormPr
                 />
                 <TextField
                     label="Teléfono"
+                    type="tel"
+                    inputMode="numeric"
                     icon={<Phone />}
-                    placeholder="5555-5555"
+                    placeholder="55555555"
                     {...phone.props}
+                    onInput={(e) => {
+                        e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "").slice(0, 8);
+                    }}
                 />
             </div>
 
@@ -198,9 +203,14 @@ export default function UserForm({ editingUser, onSubmit, onCancel }: UserFormPr
                 />
                 <TextField
                     label="Identificación / DPI"
+                    type="text"
+                    inputMode="numeric"
                     icon={<IdCard />}
                     placeholder="1234567890123"
                     {...identification.props}
+                    onInput={(e) => {
+                        e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "").slice(0, 13);
+                    }}
                 />
                 <Dropdown
                     label="Rol del Sistema"

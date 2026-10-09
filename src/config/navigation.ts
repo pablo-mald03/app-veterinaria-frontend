@@ -7,6 +7,7 @@ import {
     LayoutDashboard,
     PawPrint,
     Pill,
+    ScrollText,
     ShieldCheck,
     Users,
 } from "lucide-react";
@@ -28,4 +29,5 @@ export const NAV_ITEMS: NavItem[] = [
     { name: "Facturación", href: "/facturacion", icon: CreditCard, permission: "facturacion:ver" },
     { name: "Recursos Humanos", href: "/dashboard/users", icon: Users, permission: "usuarios:ver" },
     { name: "Roles y Permisos", href: "/dashboard/roles", icon: ShieldCheck, permission: "roles:ver" },
+    { name: "Bitácora de Logs", href: "/dashboard/logs", icon: ScrollText, permission: "logs:ver" },
 ];

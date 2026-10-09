@@ -4,8 +4,11 @@ import {
     parseIsoDate,
     startOfToday,
     subtractYears,
+    toIsoDate,
 } from "@/lib/vaccination/dates";
+import { countDoses } from "@/lib/vaccination/records";
 import { isVaccineForSpecies } from "@/lib/vaccination/species";
+import type { VaccinationView } from "@/types/vaccination";
 import type { VaccineResponse } from "@/types/vaccination-api";
 
 // Validaciones del formulario "Registrar vacuna".
@@ -14,6 +17,13 @@ import type { VaccineResponse } from "@/types/vaccination-api";
 // estas siguen sirviendo como validación temprana (el backend siempre manda).
 // Los campos simples usan zod (como pet.schema.ts); los que dependen de otros campos
 // (catálogo, carnet, edad de la mascota) son funciones que devuelven el mensaje de error.
+
+/**
+ * Cuántos días hacia atrás se permite registrar la fecha de aplicación.
+ * 0 = solo se acepta la fecha de hoy (la vacuna se registra el día que se aplica).
+ * Para dar margen (por ejemplo, registrar al día siguiente) basta con subir este número.
+ */
+export const VACCINATION_MAX_BACKDATE_DAYS = 0;
 
 // ---- Campos simples ----
 
@@ -33,10 +43,15 @@ export const vaccinationNotesSchema = z
 interface VaccineContext {
     catalog: VaccineResponse[];
     petSpecies: string;
+    /** Carnet actual: sirve para saber si el esquema de esa vacuna ya está completo. */
+    records: VaccinationView[];
 }
 
-/** La vacuna debe existir en el catálogo, estar activa y aplicar a la especie de la mascota. */
-export function vaccinationVaccineValidator({ catalog, petSpecies }: VaccineContext) {
+/**
+ * La vacuna debe existir en el catálogo, estar activa, aplicar a la especie de la mascota
+ * y no tener ya todas sus dosis registradas (el backend rechaza una dosis de más).
+ */
+export function vaccinationVaccineValidator({ catalog, petSpecies, records }: VaccineContext) {
     return (value: string): string | undefined => {
         if (!value) return "Selecciona la vacuna aplicada.";
 
@@ -47,22 +62,10 @@ export function vaccinationVaccineValidator({ catalog, petSpecies }: VaccineCont
             return `Esta vacuna no aplica para la especie ${petSpecies}.`;
         }
 
-        return undefined;
-    };
-}
-
-/** Entero entre 1 y 99 que no se haya registrado ya para esa vacuna en esta mascota. */
-export function vaccinationDoseValidator(takenDoses: number[]) {
-    return (value: string): string | undefined => {
-        const text = value.trim();
-
-        if (!text) return "El número de dosis es obligatorio.";
-        if (!/^\d+$/.test(text)) return "La dosis debe ser un número entero.";
-
-        const dose = Number(text);
-        if (dose < 1) return "La dosis mínima es 1.";
-        if (dose > 99) return "La dosis máxima es 99.";
-        if (takenDoses.includes(dose)) return `La dosis ${dose} de esta vacuna ya está registrada.`;
+        const applied = countDoses(records, vaccine.idVaccine);
+        if (applied >= vaccine.dosesRequired) {
+            return `Esquema completo: ya se aplicaron las ${vaccine.dosesRequired} dosis de ${vaccine.name}.`;
+        }
 
         return undefined;
     };
@@ -71,12 +74,21 @@ export function vaccinationDoseValidator(takenDoses: number[]) {
 interface DateContext {
     /** Edad de la mascota en años (la fecha no puede ser anterior a su nacimiento estimado). */
     petAgeYears: number;
-    /** Fecha de la dosis anterior de la misma vacuna; la nueva debe ser posterior. */
+    /** Fecha de la última dosis de la misma vacuna; la nueva debe ser posterior. */
     previousDoseDate: string | null;
+    /** Días hacia atrás permitidos (por defecto VACCINATION_MAX_BACKDATE_DAYS). */
+    maxBackdateDays?: number;
 }
 
-/** Fecha real, no futura, posterior al nacimiento estimado y a la dosis anterior. */
-export function vaccinationDateValidator({ petAgeYears, previousDoseDate }: DateContext) {
+/**
+ * Fecha real, ni futura ni más antigua de lo permitido (por defecto, solo hoy),
+ * posterior al nacimiento estimado y a la dosis anterior.
+ */
+export function vaccinationDateValidator({
+    petAgeYears,
+    previousDoseDate,
+    maxBackdateDays = VACCINATION_MAX_BACKDATE_DAYS,
+}: DateContext) {
     return (value: string): string | undefined => {
         if (!value) return "La fecha de aplicación es obligatoria.";
 
@@ -85,6 +97,14 @@ export function vaccinationDateValidator({ petAgeYears, previousDoseDate }: Date
 
         const today = startOfToday();
         if (date.getTime() > today.getTime()) return "La fecha de aplicación no puede ser futura.";
+
+        // El backend no valida fechas pasadas, por eso se controla aquí.
+        const oldestAllowed = new Date(today.getFullYear(), today.getMonth(), today.getDate() - maxBackdateDays);
+        if (date.getTime() < oldestAllowed.getTime()) {
+            return maxBackdateDays === 0
+                ? "La fecha de aplicación no puede ser anterior a hoy."
+                : `La fecha de aplicación no puede ser anterior al ${formatDate(toIsoDate(oldestAllowed))}.`;
+        }
 
         // La edad se guarda redondeada: se da un año de margen para no rechazar fechas válidas.
         const earliest = subtractYears(today, Math.ceil(Math.max(petAgeYears, 0)) + 1);

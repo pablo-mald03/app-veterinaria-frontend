@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { getPetVaccinations } from "@/services/vaccinationService";
-import type { VaccinationResponse } from "@/types/vaccination-api";
+import type { VaccinationView } from "@/types/vaccination";
 
 interface PetVaccinationsState {
     /** Mascota a la que pertenece el resultado guardado. */
     petId: number | null;
-    records: VaccinationResponse[];
+    records: VaccinationView[];
     error: string | null;
 }
 

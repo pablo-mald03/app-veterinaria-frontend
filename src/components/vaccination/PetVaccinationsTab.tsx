@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, RefreshCw, Syringe } from "lucide-react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import Can from "@/components/auth/Can";
 import Alert from "@/components/ui/common/Alert";
 import Button from "@/components/ui/common/Button";
@@ -13,11 +14,11 @@ import { daysFromToday, describeDue, formatDate } from "@/lib/vaccination/dates"
 import { latestPerVaccine, sortByAppliedDesc } from "@/lib/vaccination/records";
 import { createPetVaccination } from "@/services/vaccinationService";
 import type { Mascota } from "@/types/pet";
-import type { VaccinationRequest, VaccinationResponse } from "@/types/vaccination-api";
+import type { VaccinationInput, VaccinationView } from "@/types/vaccination";
 
 interface PetVaccinationsTabProps {
     mascota: Mascota;
-    records: VaccinationResponse[];
+    records: VaccinationView[];
     loading: boolean;
     error: string | null;
     /** Vuelve a pedir el carnet (se llama después de registrar una vacuna). */
@@ -27,15 +28,22 @@ interface PetVaccinationsTabProps {
 //Pestaña "Vacunas" del expediente: carnet de vacunación + botón para registrar
 export default function PetVaccinationsTab({ mascota, records, loading, error, onReload }: PetVaccinationsTabProps) {
     const toast = useToast();
+    const { user } = useAuth();
     const [formOpen, setFormOpen] = useState(false);
 
     // Solo la última dosis de cada vacuna tiene estado vigente; las anteriores quedaron superadas.
     const latestIds = new Set(latestPerVaccine(records).map((record) => record.idVaccination));
     const rows = sortByAppliedDesc(records);
 
-    const handleSave = async (request: VaccinationRequest) => {
+    const handleSave = async (input: VaccinationInput) => {
         try {
-            await createPetVaccination(Number(mascota.id), request);
+            // El backend exige el id del veterinario que aplicó la vacuna: el del usuario con sesión.
+            const doctorId = Number(user?.id);
+            if (!Number.isInteger(doctorId)) {
+                throw new Error("No se pudo identificar al veterinario de la sesión actual.");
+            }
+
+            await createPetVaccination(Number(mascota.id), input, doctorId);
             toast.success("Vacuna registrada", mascota.name);
             setFormOpen(false);
             onReload();
@@ -105,7 +113,6 @@ export default function PetVaccinationsTab({ mascota, records, loading, error, o
 
                                     <p className="mt-1 text-sm text-text/70">
                                         Aplicada el {formatDate(record.appliedAt)}
-                                        {record.veterinarian ? ` · Dr(a). ${record.veterinarian}` : ""}
                                     </p>
 
                                     {record.lot && <p className="mt-0.5 text-xs text-text/60">Lote: {record.lot}</p>}
@@ -120,6 +127,10 @@ export default function PetVaccinationsTab({ mascota, records, loading, error, o
                                             <p className="text-xs text-text/70">Próxima: {formatDate(record.nextDoseDate)}</p>
                                             <p className="text-xs font-medium text-accent">{describeDue(days)}</p>
                                         </>
+                                    )}
+
+                                    {isLatest && !record.nextDoseDate && record.schemeComplete && (
+                                        <p className="text-xs font-medium text-accent">Esquema completo</p>
                                     )}
                                 </div>
                             </li>

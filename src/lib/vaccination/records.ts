@@ -1,8 +1,10 @@
-import type { VaccinationResponse } from "@/types/vaccination-api";
+import { addDays } from "@/lib/vaccination/dates";
+import type { VaccinationView } from "@/types/vaccination";
+import type { VaccineResponse } from "@/types/vaccination-api";
 
 // Funciones puras sobre el carnet de vacunación de una mascota.
 
-type RecordLike = Pick<VaccinationResponse, "idVaccination" | "idVaccine" | "doseNumber" | "appliedAt">;
+type RecordLike = Pick<VaccinationView, "idVaccination" | "idVaccine" | "doseNumber" | "appliedAt">;
 
 /** Ordena de la más reciente a la más antigua (por fecha, luego dosis, luego id). */
 function byMostRecent(a: RecordLike, b: RecordLike): number {
@@ -36,7 +38,7 @@ export interface VaccinationSummary {
 }
 
 /** Cuenta cuántas vacunas (última dosis de cada una) están vencidas o por vencer. */
-export function summarizeVaccinations(records: VaccinationResponse[]): VaccinationSummary {
+export function summarizeVaccinations(records: VaccinationView[]): VaccinationSummary {
     const latest = latestPerVaccine(records);
 
     return {
@@ -55,43 +57,45 @@ export function describeSummary({ overdue, dueSoon }: VaccinationSummary): strin
     return parts.length > 0 ? `${parts.join(" y ")}.` : null;
 }
 
-/** Dosis ya registradas de una vacuna. */
-export function takenDosesOf(records: RecordLike[], idVaccine: number): number[] {
-    return records.filter((record) => record.idVaccine === idVaccine).map((record) => record.doseNumber);
+// ---- Reglas que replican al backend (RegisterVaccinationRecordHandler / VaccinationRecord) ----
+// El backend es quien decide; estas funciones solo adelantan el resultado en el formulario.
+
+/** Cuántas dosis de esa vacuna ya tiene registradas la mascota. */
+export function countDoses(records: RecordLike[], idVaccine: number): number {
+    return records.filter((record) => record.idVaccine === idVaccine).length;
 }
 
-/** Siguiente número de dosis sugerido (última registrada + 1; 1 si no hay ninguna). */
-export function suggestNextDose(records: RecordLike[], idVaccine: number): number {
-    const taken = takenDosesOf(records, idVaccine);
-    return taken.length > 0 ? Math.max(...taken) + 1 : 1;
+/** Número de dosis que se registrará al guardar (el backend usa: registradas + 1). */
+export function nextDoseNumber(records: RecordLike[], idVaccine: number): number {
+    return countDoses(records, idVaccine) + 1;
 }
 
-/** Fecha de la dosis inmediatamente anterior a `doseNumber` de esa vacuna (null si no existe). */
-export function findPreviousDoseDate(records: RecordLike[], idVaccine: number, doseNumber: number): string | null {
-    const previous = records
-        .filter((record) => record.idVaccine === idVaccine && record.doseNumber < doseNumber)
-        .sort((a, b) => b.doseNumber - a.doseNumber)[0];
-
-    return previous?.appliedAt ?? null;
+/** ¿Ya se aplicaron todas las dosis del esquema? (el backend rechaza una dosis más). */
+export function isSchemeComplete(records: RecordLike[], vaccine: Pick<VaccineResponse, "idVaccine" | "dosesRequired">): boolean {
+    return countDoses(records, vaccine.idVaccine) >= vaccine.dosesRequired;
 }
 
 /**
- * Aviso NO bloqueante sobre el número de dosis (el registro igual se permite):
- * - se saltó una dosis anterior
- * - supera el esquema inicial (se considera refuerzo)
+ * Fecha estimada de la próxima dosis, con la misma regla del backend:
+ * solo hay próxima dosis si faltan dosis del esquema y la vacuna tiene intervalo.
  */
-export function getDoseWarning(
+export function estimateNextDoseDate(
+    vaccine: Pick<VaccineResponse, "dosesRequired" | "intervalDays">,
     doseNumber: number,
-    dosesRequired: number,
-    takenDoses: number[],
-): string | undefined {
-    if (doseNumber > 1 && !takenDoses.includes(doseNumber - 1)) {
-        return `Aún no hay registrada la dosis ${doseNumber - 1} de esta vacuna.`;
-    }
+    appliedAt: string,
+): string | null {
+    const hasMoreDoses = doseNumber < vaccine.dosesRequired;
+    if (!hasMoreDoses || !vaccine.intervalDays) return null;
 
-    if (dosesRequired > 0 && doseNumber > dosesRequired) {
-        return `Supera el esquema inicial de ${dosesRequired} dosis; se registrará como refuerzo.`;
-    }
+    return addDays(appliedAt, vaccine.intervalDays);
+}
 
-    return undefined;
+/** Fecha de la última dosis registrada de esa vacuna (null si no hay ninguna). */
+export function findLastDoseDate(records: RecordLike[], idVaccine: number): string | null {
+    const dates = records
+        .filter((record) => record.idVaccine === idVaccine)
+        .map((record) => record.appliedAt)
+        .sort();
+
+    return dates.length > 0 ? dates[dates.length - 1] : null;
 }

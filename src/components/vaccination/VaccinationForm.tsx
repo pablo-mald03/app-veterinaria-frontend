@@ -1,45 +1,41 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarCheck, CalendarClock, FileText, Hash, RefreshCw, Syringe, Tag } from "lucide-react";
+import { CalendarCheck, CalendarClock, CircleCheck, FileText, RefreshCw, Syringe, Tag } from "lucide-react";
 import Alert from "@/components/ui/common/Alert";
 import Button from "@/components/ui/common/Button";
 import Dropdown, { type DropdownOption } from "@/components/ui/common/Dropdown";
 import TextArea from "@/components/ui/common/TextArea";
 import TextField from "@/components/ui/common/TextField";
 import { useField } from "@/hooks/useField";
-import { digitsOnly } from "@/lib/forms/transform";
 import { addDays, formatDate, parseIsoDate, toIsoDate } from "@/lib/vaccination/dates";
 import {
-    findPreviousDoseDate,
-    getDoseWarning,
-    suggestNextDose,
-    takenDosesOf,
+    countDoses,
+    estimateNextDoseDate,
+    findLastDoseDate,
+    nextDoseNumber,
 } from "@/lib/vaccination/records";
 import { isVaccineForSpecies } from "@/lib/vaccination/species";
 import {
+    VACCINATION_MAX_BACKDATE_DAYS,
     vaccinationDateValidator,
-    vaccinationDoseValidator,
     vaccinationLotSchema,
     vaccinationNotesSchema,
     vaccinationVaccineValidator,
 } from "@/schemas/vaccination.schema";
 import type { Mascota } from "@/types/pet";
-import type {
-    VaccinationRequest,
-    VaccinationResponse,
-    VaccineResponse,
-} from "@/types/vaccination-api";
+import type { VaccinationInput, VaccinationView } from "@/types/vaccination";
+import type { VaccineResponse } from "@/types/vaccination-api";
 
 interface VaccinationFormProps {
     mascota: Mascota;
-    /** Carnet actual de la mascota (para evitar dosis duplicadas y sugerir la siguiente). */
-    records: VaccinationResponse[];
+    /** Carnet actual de la mascota (para saber la dosis que toca y si el esquema ya está completo). */
+    records: VaccinationView[];
     catalog: VaccineResponse[];
     loadingCatalog: boolean;
     catalogError: string | null;
     onRetryCatalog: () => void;
-    onSubmit: (request: VaccinationRequest) => Promise<void>;
+    onSubmit: (input: VaccinationInput) => Promise<void>;
     onCancel: () => void;
 }
 
@@ -55,38 +51,29 @@ export default function VaccinationForm({
     onCancel,
 }: VaccinationFormProps) {
     const today = toIsoDate(new Date());
+    // Fecha más antigua que se puede elegir (el selector también la respeta).
+    const oldestDate = addDays(today, -VACCINATION_MAX_BACKDATE_DAYS);
 
     const [submitting, setSubmitting] = useState(false);
     const [generalError, setGeneralError] = useState<string | null>(null);
 
     // ---- Vacuna ----
     const vaccineId = useField({
-        validator: vaccinationVaccineValidator({ catalog, petSpecies: mascota.especie }),
+        validator: vaccinationVaccineValidator({ catalog, petSpecies: mascota.especie, records }),
         validateOn: "blur",
     });
 
     const selectedVaccine = catalog.find((item) => String(item.idVaccine) === vaccineId.value);
-    const takenDoses = selectedVaccine ? takenDosesOf(records, selectedVaccine.idVaccine) : [];
 
-    // ---- Dosis ----
-    const dose = useField({
-        initialValue: "1",
-        validator: vaccinationDoseValidator(takenDoses),
-        validateOn: "blur",
-        transform: digitsOnly,
-    });
-
-    const doseNumber = /^\d+$/.test(dose.value) ? Number(dose.value) : null;
+    // La dosis la calcula el backend (dosis registradas + 1); aquí solo se adelanta para informar.
+    const doseToRegister = selectedVaccine ? nextDoseNumber(records, selectedVaccine.idVaccine) : null;
 
     // ---- Fecha de aplicación ----
     const appliedAt = useField({
         initialValue: today,
         validator: vaccinationDateValidator({
             petAgeYears: mascota.age,
-            previousDoseDate:
-                selectedVaccine && doseNumber !== null
-                    ? findPreviousDoseDate(records, selectedVaccine.idVaccine, doseNumber)
-                    : null,
+            previousDoseDate: selectedVaccine ? findLastDoseDate(records, selectedVaccine.idVaccine) : null,
         }),
         validateOn: "blur",
     });
@@ -100,6 +87,8 @@ export default function VaccinationForm({
         const options = catalog.map((item) => {
             const inactive = !item.status;
             const compatible = isVaccineForSpecies(item.species, mascota.especie);
+            const applied = countDoses(records, item.idVaccine);
+            const complete = applied >= item.dosesRequired;
 
             return {
                 value: String(item.idVaccine),
@@ -108,52 +97,39 @@ export default function VaccinationForm({
                     ? "Vacuna inactiva"
                     : !compatible
                         ? `No aplica para ${mascota.especie}`
-                        : `${item.species} · ${item.dosesRequired} dosis`,
-                disabled: inactive || !compatible,
+                        : complete
+                            ? `Esquema completo (${applied} de ${item.dosesRequired} dosis)`
+                            : `${item.species} · ${applied} de ${item.dosesRequired} dosis aplicadas`,
+                disabled: inactive || !compatible || complete,
             };
         });
 
         // Las utilizables primero (el orden original se conserva dentro de cada grupo).
         return [...options.filter((o) => !o.disabled), ...options.filter((o) => o.disabled)];
-    }, [catalog, mascota.especie]);
+    }, [catalog, records, mascota.especie]);
 
-    // ---- Avisos informativos (no bloquean el guardado) ----
-    const doseWarning =
-        selectedVaccine && doseNumber !== null && dose.valid
-            ? getDoseWarning(doseNumber, selectedVaccine.dosesRequired, takenDoses)
-            : undefined;
-
+    // ---- Resumen de lo que ocurrirá al guardar ----
+    const dateIsValid = appliedAt.valid && parseIsoDate(appliedAt.value) !== null;
     const estimatedNextDose =
-        selectedVaccine?.intervalDays && appliedAt.valid && parseIsoDate(appliedAt.value)
-            ? addDays(appliedAt.value, selectedVaccine.intervalDays)
+        selectedVaccine && doseToRegister !== null && dateIsValid
+            ? estimateNextDoseDate(selectedVaccine, doseToRegister, appliedAt.value)
             : null;
+    const completesScheme =
+        selectedVaccine && doseToRegister !== null && vaccineId.valid
+            ? doseToRegister >= selectedVaccine.dosesRequired
+            : false;
 
-    const isFormValid =
-        vaccineId.valid && dose.valid && appliedAt.valid && lot.valid && notes.valid;
-
-    const handleVaccineChange = (value: string) => {
-        vaccineId.setValue(value);
-        // Propone la siguiente dosis según lo que ya tenga registrado en el carnet.
-        if (value) dose.setValue(String(suggestNextDose(records, Number(value))));
-    };
+    const isFormValid = vaccineId.valid && appliedAt.valid && lot.valid && notes.valid;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setGeneralError(null);
 
-        const results = [
-            vaccineId.validate(),
-            dose.validate(),
-            appliedAt.validate(),
-            lot.validate(),
-            notes.validate(),
-        ];
-
+        const results = [vaccineId.validate(), appliedAt.validate(), lot.validate(), notes.validate()];
         if (!results.every(Boolean)) return;
 
-        const request: VaccinationRequest = {
+        const input: VaccinationInput = {
             idVaccine: Number(vaccineId.value),
-            doseNumber: Number(dose.value),
             appliedAt: appliedAt.value,
             lot: lot.value.trim() || undefined,
             notes: notes.value.trim() || undefined,
@@ -161,7 +137,7 @@ export default function VaccinationForm({
 
         try {
             setSubmitting(true);
-            await onSubmit(request);
+            await onSubmit(input);
         } catch (err) {
             setGeneralError(err instanceof Error ? err.message : "No se pudo registrar la vacuna.");
         } finally {
@@ -192,7 +168,7 @@ export default function VaccinationForm({
                 icon={<Syringe />}
                 options={vaccineOptions}
                 value={vaccineId.value}
-                onValueChange={handleVaccineChange}
+                onValueChange={vaccineId.setValue}
                 onBlur={vaccineId.props.onBlur}
                 error={vaccineId.error}
                 placeholder="Selecciona la vacuna aplicada"
@@ -204,28 +180,14 @@ export default function VaccinationForm({
                 disabled={Boolean(catalogError)}
             />
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <TextField
-                    label="Número de dosis"
-                    icon={<Hash />}
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    step={1}
-                    placeholder="1"
-                    message={doseWarning}
-                    messageVariant="warning"
-                    {...dose.props}
-                />
-
-                <TextField
-                    label="Fecha de aplicación"
-                    icon={<CalendarCheck />}
-                    type="date"
-                    max={today}
-                    {...appliedAt.props}
-                />
-            </div>
+            <TextField
+                label="Fecha de aplicación"
+                icon={<CalendarCheck />}
+                type="date"
+                min={oldestDate}
+                max={today}
+                {...appliedAt.props}
+            />
 
             <TextField
                 label="Lote (opcional)"
@@ -242,15 +204,23 @@ export default function VaccinationForm({
                 {...notes.props}
             />
 
-            {estimatedNextDose && selectedVaccine?.intervalDays && (
+            {selectedVaccine && doseToRegister !== null && vaccineId.valid && (
                 <div className="flex items-start gap-3 rounded-xl bg-mint/50 p-4 text-sm text-text">
-                    <CalendarClock className="mt-0.5 h-5 w-5 shrink-0 text-accent" aria-hidden="true" />
+                    {completesScheme
+                        ? <CircleCheck className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden="true" />
+                        : <CalendarClock className="mt-0.5 h-5 w-5 shrink-0 text-accent" aria-hidden="true" />}
                     <div>
-                        <p className="font-semibold">Próxima dosis estimada: {formatDate(estimatedNextDose)}</p>
-                        <p className="text-xs text-text/70">
-                            Se calcula con el intervalo de {selectedVaccine.intervalDays} días de la vacuna.
-                            La fecha final la confirma el sistema al guardar.
+                        <p className="font-semibold">
+                            Se registrará la dosis {doseToRegister} de {selectedVaccine.dosesRequired}
                         </p>
+                        {estimatedNextDose ? (
+                            <p className="text-xs text-text/70">
+                                Próxima dosis estimada: {formatDate(estimatedNextDose)}. La fecha final la calcula el
+                                sistema al guardar.
+                            </p>
+                        ) : (
+                            <p className="text-xs text-text/70">Con esta dosis se completa el esquema de la vacuna.</p>
+                        )}
                     </div>
                 </div>
             )}

@@ -1,10 +1,8 @@
-import type { EstadoVacuna } from "@/types/vaccination";
+// Contrato REAL del backend para vacunación (rama develop).
+// Las fechas viajan como "YYYY-MM-DD" (LocalDate de Java).
+// Estos son los datos "crudos"; los modelos que usa la interfaz están en types/vaccination.ts.
 
-// Contratos con el backend del módulo de vacunación.
-// Todas las fechas viajan como "YYYY-MM-DD" (LocalDate de Java).
-
-// ---- Catálogo de vacunas ----
-// YA EXISTE en el backend (GET /vaccines, rama feature/vaccination).
+// ---- Catálogo de vacunas: GET /vaccines ----
 export interface VaccineResponse {
   idVaccine: number;
   name: string;
@@ -19,36 +17,42 @@ export interface VaccineResponse {
   status: boolean;
 }
 
-// ---- Carnet de vacunación ----
-// CONTRATO PROPUESTO (aún no existe en el backend): confirmar nombres y rutas con el equipo.
+// ---- Carnet (1 por mascota) ----
+// GET  {cards}/pet/{idPet}  -> 404 si la mascota aún no tiene carnet
+// POST {cards}/pet/{idPet}  -> lo crea, o devuelve el existente
+export interface VaccinationCardResponse {
+  idCard: number;
+  idPet: number;
+  creationDate: string;
+  status: boolean;
+}
 
-/** POST /pets/{petId}/vaccinations */
-export interface VaccinationRequest {
+// ---- Dosis aplicadas ----
+
+/** POST /vaccination-records — el backend calcula doseNumber y nextDoseDate. */
+export interface VaccinationRecordRequest {
+  idCard: number;
   idVaccine: number;
-  doseNumber: number;
-  appliedAt: string;
-  lot?: string;
+  idDoctor: number;
+  applicationDate: string;
+  batchNumber?: string;
   notes?: string;
 }
 
-/** GET /pets/{petId}/vaccinations */
-export interface VaccinationResponse {
-  idVaccination: number;
-  idPet: number;
+/** GET /vaccination-records/{idCard} y GET /vaccination-records/pending?days=N */
+export interface VaccinationRecordResponse {
+  idRecord: number;
+  idCard: number;
   idVaccine: number;
-  vaccineName: string;
+  idDoctor: number;
   doseNumber: number;
-  appliedAt: string;
-  /** Fecha de la próxima dosis, calculada por el backend (aplicación + intervalo). */
+  applicationDate: string;
+  /** null cuando ya se aplicó la última dosis del esquema. */
   nextDoseDate: string | null;
-  status: EstadoVacuna;
-  veterinarian: string | null;
-  lot: string | null;
+  batchNumber: string | null;
   notes: string | null;
-}
-
-/** GET /vaccinations/upcoming?days=30 (vencidas y por vencer, para la campana) */
-export interface UpcomingVaccinationResponse extends VaccinationResponse {
-  petName: string;
-  ownerName: string | null;
+  // Campos que hoy el backend NO envía en /pending. Si los agrega, el frontend los usa
+  // directamente y deja de consultar cada carnet para averiguar la mascota.
+  idPet?: number;
+  petName?: string;
 }

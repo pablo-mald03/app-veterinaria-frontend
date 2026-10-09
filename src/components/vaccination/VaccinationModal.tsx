@@ -4,14 +4,14 @@ import Modal from "@/components/ui/common/Modal";
 import VaccinationForm from "@/components/vaccination/VaccinationForm";
 import { useVaccineCatalog } from "@/hooks/useVaccineCatalog";
 import type { Mascota } from "@/types/pet";
-import type { VaccinationRequest, VaccinationResponse } from "@/types/vaccination-api";
+import type { VaccinationInput, VaccinationView } from "@/types/vaccination";
 
 interface VaccinationModalProps {
     open: boolean;
     mascota: Mascota;
-    records: VaccinationResponse[];
+    records: VaccinationView[];
     onClose: () => void;
-    onSave: (request: VaccinationRequest) => Promise<void>;
+    onSave: (input: VaccinationInput) => Promise<void>;
 }
 
 //Modal para registrar una vacuna (carga el catálogo solo cuando se abre)

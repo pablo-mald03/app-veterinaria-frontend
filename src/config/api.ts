@@ -1,6 +1,8 @@
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "/api/v1";
 
+  const VACCINATION_CARDS_PATH = "/api/vaccination-cards";
+
 export const ENDPOINTS = {
   AUTH: {
     LOGIN: `${API_BASE_URL}/auth/login`,
@@ -36,15 +38,21 @@ export const ENDPOINTS = {
     UPDATE: (id: number) => `${API_BASE_URL}/clients/${id}`,
     DELETE: (id: number) => `${API_BASE_URL}/clients/${id}`,
   },
-  //Vaccination module
-  //VACCINES (catálogo) ya existe en el backend (rama feature/vaccination).
-  //VACCINATIONS (carnet por mascota y próximas a vencer) es el contrato PROPUESTO: confirmar con el backend.
+
+  //Vaccination module (contrato REAL del backend, rama develop)
   VACCINES: {
     LIST: `${API_BASE_URL}/vaccines`,
   },
-  VACCINATIONS: {
-    BY_PET: (petId: number) => `${API_BASE_URL}/pets/${petId}/vaccinations`,
-    UPCOMING: (days: number) => `${API_BASE_URL}/vaccinations/upcoming?days=${days}`,
+  VACCINATION_CARDS: {
+    // OJO: el backend declara @RequestMapping("/api/vaccination-cards") y ya existe el context-path
+    // /api/v1, por eso queda "/api/v1/api/vaccination-cards". Cuando lo corrijan en el backend,
+    // cambiar VACCINATION_CARDS_PATH a "/vaccination-cards" (único lugar).
+    BY_PET: (petId: number) => `${API_BASE_URL}${VACCINATION_CARDS_PATH}/pet/${petId}`,
+  },
+  VACCINATION_RECORDS: {
+    BASE: `${API_BASE_URL}/vaccination-records`,
+    BY_CARD: (cardId: number) => `${API_BASE_URL}/vaccination-records/${cardId}`,
+    PENDING: (days: number) => `${API_BASE_URL}/vaccination-records/pending?days=${days}`,
   },
   //Permissions module
   PERMISSIONS: {

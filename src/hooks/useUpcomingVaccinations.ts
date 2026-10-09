@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { VACCINATIONS_CHANGED_EVENT } from "@/lib/vaccination/events";
+import { VACCINATION_DUE_SOON_DAYS } from "@/lib/vaccination/status";
 import { getUpcomingVaccinations } from "@/services/vaccinationService";
-import type { UpcomingVaccinationResponse } from "@/types/vaccination-api";
+import type { UpcomingVaccinationView } from "@/types/vaccination";
 
 /** Cada cuánto se vuelve a consultar (ms) mientras la pantalla está abierta. */
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
 interface UpcomingState {
     loaded: boolean;
-    items: UpcomingVaccinationResponse[];
+    items: UpcomingVaccinationView[];
     error: string | null;
 }
 
@@ -20,7 +21,7 @@ const INITIAL_STATE: UpcomingState = { loaded: false, items: [], error: null };
  * Vacunas vencidas y por vencer (alimenta la campana).
  * Se actualiza solo: al montar, cada 5 minutos y apenas se registra una vacuna.
  */
-export function useUpcomingVaccinations(days = 30) {
+export function useUpcomingVaccinations(days = VACCINATION_DUE_SOON_DAYS) {
     const [state, setState] = useState<UpcomingState>(INITIAL_STATE);
     const [version, setVersion] = useState(0);
 

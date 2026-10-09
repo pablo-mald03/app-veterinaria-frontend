@@ -10,7 +10,7 @@ import { VACCINATION_BADGES } from "@/components/vaccination/types/vaccinationSt
 import { useClickOutside } from "@/hooks/useClickOutside";
 import { useUpcomingVaccinations } from "@/hooks/useUpcomingVaccinations";
 import { daysFromToday, describeDue, formatDate } from "@/lib/vaccination/dates";
-import type { UpcomingVaccinationResponse } from "@/types/vaccination-api";
+import type { UpcomingVaccinationView } from "@/types/vaccination";
 
 const MAX_BADGE_COUNT = 9;
 
@@ -43,7 +43,7 @@ export default function NotificationBell() {
     }, [open]);
 
     // Lleva al expediente de la mascota, directo a la pestaña de vacunas.
-    const openPet = (item: UpcomingVaccinationResponse) => {
+    const openPet = (item: UpcomingVaccinationView) => {
         setOpen(false);
         router.push(`/dashboard/pets?mascota=${item.idPet}&tab=vacunas`);
     };
@@ -130,7 +130,7 @@ export default function NotificationBell() {
 
                                 return (
                                     <li key={item.idVaccination}>
-                                        {canOpenPet ? (
+                                        {canOpenPet && item.idPet > 0 ? (
                                             <button
                                                 type="button"
                                                 onClick={() => openPet(item)}

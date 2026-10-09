@@ -1,30 +1,25 @@
 import { addDays, daysFromToday, toIsoDate } from "@/lib/vaccination/dates";
-import { latestPerVaccine } from "@/lib/vaccination/records";
 import { getPets } from "@/services/petsService";
-import type { Page } from "@/types/pagination";
-import type { EstadoVacuna } from "@/types/vaccination";
+import type { VaccinationBackend } from "@/services/vaccinationBackend";
 import type {
-  UpcomingVaccinationResponse,
-  VaccinationRequest,
-  VaccinationResponse,
+  VaccinationCardResponse,
+  VaccinationRecordResponse,
   VaccineResponse,
 } from "@/types/vaccination-api";
 
-// DATOS SIMULADOS del módulo de vacunación.
-// Solo se usan con NEXT_PUBLIC_USE_MOCKS=true (ver config/features.ts).
-// Imitan lo que haría el backend: calculan próxima dosis y estado, y rechazan dosis duplicadas.
-// Cuando el backend esté listo NO hay que tocar los componentes: basta con apagar la bandera
-// y, al final, borrar este archivo.
+// BACKEND SIMULADO de vacunación (solo desarrollo, con NEXT_PUBLIC_USE_MOCKS=true).
+// Implementa el MISMO contrato que el backend real y replica sus reglas:
+//  - la dosis la calcula el servidor (registradas + 1) y se rechaza si supera el esquema
+//  - la próxima dosis solo existe si faltan dosis del esquema
+//  - /pending devuelve la última dosis de cada vacuna con próxima dosis <= hoy + días
+//  - el carnet de una mascota no existe hasta que se crea
+// Es opcional: sirve para trabajar sin backend. Se puede borrar cuando ya no haga falta.
 
-const STORAGE_KEY = "happypets.mock.vaccinations";
-const LATENCY_MS = 350;
-/** Ventana en días para considerar una vacuna "por vencer" (el backend debe definir la suya). */
-const DUE_SOON_DAYS = 30;
-
-// ---- Catálogo simulado (misma forma que GET /vaccines) ----
+const STORAGE_KEY = "happypets.mock.vaccination.v2";
+const LATENCY_MS = 300;
 
 const CATALOG: VaccineResponse[] = [
-  { idVaccine: 1, name: "Rabia", description: "Vacuna antirrábica anual", species: "PERRO, GATO", dosesRequired: 1, intervalDays: 365, status: true },
+  { idVaccine: 1, name: "Rabia", description: "Vacuna antirrábica", species: "PERRO, GATO", dosesRequired: 2, intervalDays: 365, status: true },
   { idVaccine: 2, name: "Parvovirus", description: "Protección contra parvovirus canino", species: "PERRO", dosesRequired: 3, intervalDays: 21, status: true },
   { idVaccine: 3, name: "Moquillo", description: "Protección contra moquillo canino", species: "PERRO", dosesRequired: 3, intervalDays: 21, status: true },
   { idVaccine: 4, name: "Triple felina", description: "Panleucopenia, rinotraqueítis y calicivirus", species: "GATO", dosesRequired: 3, intervalDays: 21, status: true },
@@ -33,14 +28,17 @@ const CATALOG: VaccineResponse[] = [
   { idVaccine: 7, name: "Coronavirus canino", description: "Descontinuada en la clínica", species: "PERRO", dosesRequired: 2, intervalDays: 365, status: false },
 ];
 
-// ---- Almacenamiento (localStorage para que sobreviva a recargas; memoria como respaldo) ----
-
 interface MockStore {
-  nextId: number;
-  byPet: Record<string, VaccinationResponse[]>;
+  nextCardId: number;
+  nextRecordId: number;
+  /** Mascotas cuyo escenario inicial ya se generó. */
+  seeded: number[];
+  cards: VaccinationCardResponse[];
+  records: VaccinationRecordResponse[];
 }
 
-let memoryStore: MockStore = { nextId: 1, byPet: {} };
+const EMPTY_STORE: MockStore = { nextCardId: 1, nextRecordId: 1, seeded: [], cards: [], records: [] };
+let memoryStore: MockStore = structuredClone(EMPTY_STORE);
 
 function readStore(): MockStore {
   if (typeof window === "undefined") return memoryStore;
@@ -68,150 +66,168 @@ function writeStore(store: MockStore): void {
 
 /** Borra los datos simulados (útil para volver a empezar desde la consola del navegador). */
 export function resetVaccinationMock(): void {
-  writeStore({ nextId: 1, byPet: {} });
+  writeStore(structuredClone(EMPTY_STORE));
 }
 
-// ---- Reglas que en producción calcula el backend ----
-
-function computeStatus(nextDoseDate: string | null): EstadoVacuna {
-  if (!nextDoseDate) return "AL_DIA";
-
-  const days = daysFromToday(nextDoseDate);
-  if (days === null) return "AL_DIA";
-  if (days < 0) return "VENCIDA";
-  if (days <= DUE_SOON_DAYS) return "POR_VENCER";
-  return "AL_DIA";
-}
-
-function buildRecord(
-  id: number,
-  petId: number,
-  vaccine: VaccineResponse,
-  doseNumber: number,
-  appliedAt: string,
-  extra: Partial<Pick<VaccinationResponse, "lot" | "notes" | "veterinarian">> = {},
-): VaccinationResponse {
-  const nextDoseDate = vaccine.intervalDays ? addDays(appliedAt, vaccine.intervalDays) : null;
-
-  return {
-    idVaccination: id,
-    idPet: petId,
-    idVaccine: vaccine.idVaccine,
-    vaccineName: vaccine.name,
-    doseNumber,
-    appliedAt,
-    nextDoseDate,
-    status: computeStatus(nextDoseDate),
-    veterinarian: extra.veterinarian ?? "Veterinario (demo)",
-    lot: extra.lot ?? null,
-    notes: extra.notes ?? null,
-  };
-}
-
-/** El estado depende de la fecha de hoy: se recalcula cada vez que se lee. */
-function withFreshStatus(record: VaccinationResponse): VaccinationResponse {
-  return { ...record, status: computeStatus(record.nextDoseDate) };
+function delay(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, LATENCY_MS));
 }
 
 function daysAgo(days: number): string {
   return addDays(toIsoDate(new Date()), -days);
 }
 
-/**
- * Carnet inicial según el id de la mascota, para poder probar todos los estados:
- *  - id % 3 === 0 -> sin vacunas (estado vacío)
- *  - id % 3 === 1 -> una al día y una vencida
- *  - id % 3 === 2 -> una por vencer y una vencida con dosis anterior superada
- */
-function seedFor(petId: number, store: MockStore): VaccinationResponse[] {
-  const vaccine = (id: number) => CATALOG.find((item) => item.idVaccine === id)!;
-  const next = () => store.nextId++;
+// ---- Reglas del backend ----
 
-  switch (petId % 3) {
-    case 1:
-      return [
-        buildRecord(next(), petId, vaccine(1), 1, daysAgo(100), { lot: "RAB-2026-01" }),
-        buildRecord(next(), petId, vaccine(3), 1, daysAgo(40), { lot: "MOQ-0415" }),
-      ];
-    case 2:
-      return [
-        buildRecord(next(), petId, vaccine(1), 1, daysAgo(340), { lot: "RAB-2025-11" }),
-        buildRecord(next(), petId, vaccine(2), 1, daysAgo(45)),
-        buildRecord(next(), petId, vaccine(2), 2, daysAgo(24), { notes: "Sin reacciones adversas." }),
-      ];
-    default:
-      return [];
-  }
+function nextDoseDateFor(vaccine: VaccineResponse, doseNumber: number, appliedAt: string): string | null {
+  const hasMoreDoses = doseNumber < vaccine.dosesRequired;
+  return hasMoreDoses && vaccine.intervalDays ? addDays(appliedAt, vaccine.intervalDays) : null;
 }
 
-function ensureSeeded(petId: number): VaccinationResponse[] {
-  const store = readStore();
-  const key = String(petId);
+function addRecord(
+  store: MockStore,
+  idCard: number,
+  vaccine: VaccineResponse,
+  appliedAt: string,
+  extra: { batchNumber?: string; notes?: string; idDoctor?: number } = {},
+): VaccinationRecordResponse {
+  const doseNumber = store.records.filter((r) => r.idCard === idCard && r.idVaccine === vaccine.idVaccine).length + 1;
 
-  if (!store.byPet[key]) {
-    store.byPet[key] = seedFor(petId, store);
-    writeStore(store);
-  }
+  const record: VaccinationRecordResponse = {
+    idRecord: store.nextRecordId++,
+    idCard,
+    idVaccine: vaccine.idVaccine,
+    idDoctor: extra.idDoctor ?? 1,
+    doseNumber,
+    applicationDate: appliedAt,
+    nextDoseDate: nextDoseDateFor(vaccine, doseNumber, appliedAt),
+    batchNumber: extra.batchNumber ?? null,
+    notes: extra.notes ?? null,
+  };
 
-  return store.byPet[key].map(withFreshStatus);
-}
-
-function delay(ms = LATENCY_MS): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-// ---- API simulada (mismas firmas que usa vaccinationService) ----
-
-export async function mockGetVaccineCatalog(): Promise<Page<VaccineResponse>> {
-  await delay();
-  return { content: CATALOG, page: 0, size: CATALOG.length, totalPages: 1, totalElements: CATALOG.length };
-}
-
-export async function mockGetPetVaccinations(petId: number): Promise<VaccinationResponse[]> {
-  await delay();
-  return ensureSeeded(petId);
-}
-
-export async function mockCreatePetVaccination(petId: number, request: VaccinationRequest): Promise<VaccinationResponse> {
-  await delay();
-
-  const vaccine = CATALOG.find((item) => item.idVaccine === request.idVaccine);
-  if (!vaccine) throw new Error("La vacuna indicada no existe en el catálogo.");
-  if (!vaccine.status) throw new Error("La vacuna indicada está inactiva.");
-
-  const current = ensureSeeded(petId);
-  if (current.some((item) => item.idVaccine === request.idVaccine && item.doseNumber === request.doseNumber)) {
-    throw new Error(`La dosis ${request.doseNumber} de ${vaccine.name} ya está registrada para esta mascota.`);
-  }
-
-  const store = readStore();
-  const record = buildRecord(store.nextId++, petId, vaccine, request.doseNumber, request.appliedAt, {
-    lot: request.lot ?? null,
-    notes: request.notes ?? null,
-  });
-
-  store.byPet[String(petId)] = [...(store.byPet[String(petId)] ?? current), record];
-  writeStore(store);
-
+  store.records.push(record);
   return record;
 }
 
-/** Vencidas y las que vencen dentro de `days` días, de todas las mascotas (para la campana). */
-export async function mockGetUpcomingVaccinations(days: number): Promise<UpcomingVaccinationResponse[]> {
-  await delay();
+function createCardIn(store: MockStore, idPet: number): VaccinationCardResponse {
+  const existing = store.cards.find((c) => c.idPet === idPet);
+  if (existing) return existing;
 
-  // Los nombres de las mascotas se toman del backend real (GET /pets/all-pets).
-  const pets = await getPets(0, 100).then((page) => page.content).catch(() => []);
-  const upcoming: UpcomingVaccinationResponse[] = [];
+  const card: VaccinationCardResponse = {
+    idCard: store.nextCardId++,
+    idPet,
+    creationDate: toIsoDate(new Date()),
+    status: true,
+  };
 
-  for (const pet of pets) {
-    for (const record of latestPerVaccine(ensureSeeded(pet.idPet))) {
-      const remaining = record.nextDoseDate ? daysFromToday(record.nextDoseDate) : null;
-      if (remaining === null || remaining > days) continue;
+  store.cards.push(card);
+  return card;
+}
 
-      upcoming.push({ ...record, petName: pet.name, ownerName: null });
-    }
+/**
+ * Escenario inicial según el id de la mascota, para poder probar todos los estados:
+ *  - id % 3 === 0 -> sin carnet (aún no se creó)
+ *  - id % 3 === 1 -> una al día y una vencida
+ *  - id % 3 === 2 -> una por vencer, una vencida con dosis anterior superada y una con esquema completo
+ */
+function seedPet(store: MockStore, idPet: number): void {
+  if (store.seeded.includes(idPet)) return;
+  store.seeded.push(idPet);
+
+  const vaccine = (id: number) => CATALOG.find((v) => v.idVaccine === id)!;
+  const scenario = idPet % 3;
+  if (scenario === 0) return;
+
+  const card = createCardIn(store, idPet);
+
+  if (scenario === 1) {
+    addRecord(store, card.idCard, vaccine(1), daysAgo(100), { batchNumber: "RAB-2026-01" });
+    addRecord(store, card.idCard, vaccine(3), daysAgo(40), { batchNumber: "MOQ-0415" });
+  } else {
+    addRecord(store, card.idCard, vaccine(1), daysAgo(340), { batchNumber: "RAB-2025-11" });
+    addRecord(store, card.idCard, vaccine(2), daysAgo(45));
+    addRecord(store, card.idCard, vaccine(2), daysAgo(24), { notes: "Sin reacciones adversas." });
+    addRecord(store, card.idCard, vaccine(5), daysAgo(60));
+    addRecord(store, card.idCard, vaccine(5), daysAgo(30), { notes: "Esquema completo." });
   }
 
-  return upcoming.sort((a, b) => (a.nextDoseDate ?? "").localeCompare(b.nextDoseDate ?? ""));
+  writeStore(store);
 }
+
+// ---- API simulada ----
+
+export const vaccinationMock: VaccinationBackend = {
+  async getCatalog() {
+    await delay();
+    return CATALOG;
+  },
+
+  async getCardByPet(idPet) {
+    await delay();
+    const store = readStore();
+    seedPet(store, idPet);
+    return store.cards.find((c) => c.idPet === idPet) ?? null;
+  },
+
+  async createCard(idPet) {
+    await delay();
+    const store = readStore();
+    seedPet(store, idPet);
+    const card = createCardIn(store, idPet);
+    writeStore(store);
+    return card;
+  },
+
+  async getRecordsByCard(idCard) {
+    await delay();
+    return readStore().records.filter((r) => r.idCard === idCard);
+  },
+
+  async registerRecord(request) {
+    await delay();
+    const store = readStore();
+
+    if (!store.cards.some((c) => c.idCard === request.idCard)) {
+      throw new Error(`No existe el carnet de vacunación con id ${request.idCard}.`);
+    }
+
+    const vaccine = CATALOG.find((v) => v.idVaccine === request.idVaccine);
+    if (!vaccine) throw new Error(`No existe la vacuna con id ${request.idVaccine}.`);
+
+    const applied = store.records.filter((r) => r.idCard === request.idCard && r.idVaccine === request.idVaccine).length;
+    if (applied + 1 > vaccine.dosesRequired) {
+      throw new Error(`El esquema de ${vaccine.name} ya está completo.`);
+    }
+
+    const record = addRecord(store, request.idCard, vaccine, request.applicationDate, {
+      batchNumber: request.batchNumber,
+      notes: request.notes,
+      idDoctor: request.idDoctor,
+    });
+
+    writeStore(store);
+    return record;
+  },
+
+  async getPending(days) {
+    await delay();
+
+    // El estado inicial se crea al consultar cada mascota; aquí se consultan las del backend real.
+    const store = readStore();
+    const pets = await getPets(0, 100).then((page) => page.content).catch(() => []);
+    for (const pet of pets) seedPet(store, pet.idPet);
+
+    return store.records
+      .filter((record) => {
+        if (!record.nextDoseDate) return false;
+        const remaining = daysFromToday(record.nextDoseDate);
+        if (remaining === null || remaining > days) return false;
+
+        const superseded = store.records.some(
+          (other) => other.idCard === record.idCard && other.idVaccine === record.idVaccine && other.doseNumber > record.doseNumber,
+        );
+        return !superseded;
+      })
+      .sort((a, b) => (a.nextDoseDate ?? "").localeCompare(b.nextDoseDate ?? ""));
+  },
+};

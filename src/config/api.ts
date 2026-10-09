@@ -1,7 +1,8 @@
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "/api/v1";
 
-  const VACCINATION_CARDS_PATH = "/api/vaccination-cards";
+// Ruta del controlador de carnets tal como está hoy en el backend (ver ENDPOINTS.VACCINATION_CARDS).
+const VACCINATION_CARDS_PATH = "/api/vaccination-cards";
 
 export const ENDPOINTS = {
   AUTH: {
@@ -38,15 +39,16 @@ export const ENDPOINTS = {
     UPDATE: (id: number) => `${API_BASE_URL}/clients/${id}`,
     DELETE: (id: number) => `${API_BASE_URL}/clients/${id}`,
   },
-
-  //Vaccination module (contrato REAL del backend, rama develop)
+  //Logs module
+  LOGS: {
+    LIST: (params: URLSearchParams) => `${API_BASE_URL}/logs?${params}`,
+    MODULES: `${API_BASE_URL}/logs/modules`,
+  },
+  
   VACCINES: {
     LIST: `${API_BASE_URL}/vaccines`,
   },
   VACCINATION_CARDS: {
-    // OJO: el backend declara @RequestMapping("/api/vaccination-cards") y ya existe el context-path
-    // /api/v1, por eso queda "/api/v1/api/vaccination-cards". Cuando lo corrijan en el backend,
-    // cambiar VACCINATION_CARDS_PATH a "/vaccination-cards" (único lugar).
     BY_PET: (petId: number) => `${API_BASE_URL}${VACCINATION_CARDS_PATH}/pet/${petId}`,
   },
   VACCINATION_RECORDS: {
@@ -54,11 +56,13 @@ export const ENDPOINTS = {
     BY_CARD: (cardId: number) => `${API_BASE_URL}/vaccination-records/${cardId}`,
     PENDING: (days: number) => `${API_BASE_URL}/vaccination-records/pending?days=${days}`,
   },
+
   //Permissions module
   PERMISSIONS: {
     LIST: `${API_BASE_URL}/permissions`,
     CATALOG: `${API_BASE_URL}/permissions/catalog`,
   },
+
   //Role module
   ROLES: {
     LIST: `${API_BASE_URL}/roles`,

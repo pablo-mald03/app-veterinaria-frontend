@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { Menu } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import Can from "@/components/auth/Can";
+import NotificationBell from "@/components/layout/NotificationBell";
 import { useSidebar } from "./SidebarContext";
 
 //Principal header component for the mobile and desktop view
@@ -49,17 +51,25 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Sección de Usuario */}
-      <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-secondary/50 bg-white/60 px-2 py-1.5 shadow-sm transition-all hover:bg-white hover:shadow-md md:gap-4 md:px-4 md:py-2">
-        <div className="hidden flex-col items-end sm:flex">
-          <p className="max-w-[160px] truncate font-bold text-text">{user.name}</p>
-          <span className="rounded-full bg-secondary/30 px-2 py-0.5 text-xs font-semibold text-accent">
-            {user.roles[0] ?? "Usuario"}
-          </span>
-        </div>
+      {/* Avisos y usuario */}
+      <div className="flex shrink-0 items-center gap-2 md:gap-4">
+        {/* Campana de vacunas por vencer */}
+        <Can permission="vacunacion:ver">
+          <NotificationBell />
+        </Can>
 
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-base font-bold text-white shadow-inner md:h-11 md:w-11 md:text-lg">
-          {user.name.charAt(0).toUpperCase()}
+        {/* Sección de Usuario */}
+        <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-secondary/50 bg-white/60 px-2 py-1.5 shadow-sm transition-all hover:bg-white hover:shadow-md md:gap-4 md:px-4 md:py-2">
+          <div className="hidden flex-col items-end sm:flex">
+            <p className="max-w-[160px] truncate font-bold text-text">{user.name}</p>
+            <span className="rounded-full bg-secondary/30 px-2 py-0.5 text-xs font-semibold text-accent">
+              {user.roles[0] ?? "Usuario"}
+            </span>
+          </div>
+
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-base font-bold text-white shadow-inner md:h-11 md:w-11 md:text-lg">
+            {user.name.charAt(0).toUpperCase()}
+          </div>
         </div>
       </div>
 

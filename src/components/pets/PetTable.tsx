@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import PetModal from "@/components/pets/PetModal";
-import PetExpedienteModal from "@/components/pets/PetExpedienteModal";
+import PetExpedienteModal, { type ExpedienteTab } from "@/components/pets/PetExpedienteModal";
 import DataTable from "@/components/ui/table/DataTable";
 import RowActions from "@/components/ui/table/RowActions";
 import PageHeader from "@/components/ui/common/PageHeader";
@@ -12,7 +13,7 @@ import SpeciesFilter from "@/components/pets/SpeciesFilter";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/ui/toast/ToastProvider";
 import { getClients } from "@/services/clientsService";
-import { createPet, deletePet, getPets, updatePet } from "@/services/petsService";
+import { createPet, deletePet, getPetById, getPets, updatePet } from "@/services/petsService";
 import type { ClientResponse } from "@/types/client-api";
 import type { Especie, Mascota } from "@/types/pet";
 import type { PetRequest, PetResponse } from "@/types/pet-api";
@@ -47,6 +48,12 @@ function mapPetToMascota(pet: PetResponse, clientes: ClientResponse[]): Mascota 
 export default function PetTable() {
   const { hasPermission } = useAuth();
   const toast = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Enlace profundo desde la campana de vacunas: /dashboard/pets?mascota=ID&tab=vacunas
+  const mascotaParam = searchParams.get("mascota");
+  const tabParam = searchParams.get("tab");
 
   const canCreate = hasPermission("mascotas:crear");
   const canEdit = hasPermission("mascotas:editar");
@@ -65,6 +72,7 @@ export default function PetTable() {
   const [expedienteAbierto, setExpedienteAbierto] = useState(false);
   const [mascotaExpediente, setMascotaExpediente] = useState<Mascota | null>(null);
   const [mascotaAEliminar, setMascotaAEliminar] = useState<Mascota | null>(null);
+  const [mascotaRemota, setMascotaRemota] = useState<Mascota | null>(null);
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
@@ -85,6 +93,46 @@ export default function PetTable() {
   useEffect(() => {
     void cargarDatos();
   }, [cargarDatos]);
+
+  // La tabla solo carga la primera página: si la mascota del enlace no está en ella, se pide por id.
+  const mascotaLocal = mascotaParam ? mascotas.find((m) => m.id === mascotaParam) : undefined;
+
+  useEffect(() => {
+    if (cargando || !mascotaParam || mascotaLocal) return;
+
+    const petId = Number(mascotaParam);
+    if (!Number.isInteger(petId)) {
+      router.replace("/dashboard/pets");
+      return;
+    }
+
+    let cancelado = false;
+
+    getPetById(petId)
+      .then((pet) => {
+        if (!cancelado) setMascotaRemota(mapPetToMascota(pet, clientes));
+      })
+      .catch(() => {
+        if (cancelado) return;
+        toast.error("No se pudo abrir el expediente de la mascota indicada.", "Mascota no encontrada");
+        router.replace("/dashboard/pets");
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [cargando, mascotaParam, mascotaLocal, clientes, toast, router]);
+
+  // El expediente se abre por clic en la tabla o por el enlace; se deriva sin estado extra.
+  const mascotaEnlace = mascotaLocal ?? (mascotaRemota?.id === mascotaParam ? mascotaRemota : null);
+  const expedienteVisible = expedienteAbierto || mascotaEnlace !== null;
+  const expedienteMascota = mascotaEnlace ?? mascotaExpediente;
+  const expedienteTab: ExpedienteTab = mascotaEnlace && tabParam === "vacunas" ? "vacunas" : "consultas";
+
+  const cerrarExpediente = () => {
+    setExpedienteAbierto(false);
+    if (mascotaParam) router.replace("/dashboard/pets");
+  };
 
   const mascotasFiltradas = useMemo(() => {
     const q = busqueda.toLowerCase();
@@ -269,10 +317,11 @@ export default function PetTable() {
       />
 
       <PetExpedienteModal
-        open={expedienteAbierto}
-        mascota={mascotaExpediente}
+        open={expedienteVisible}
+        mascota={expedienteMascota}
         consultas={[]}
-        onClose={() => setExpedienteAbierto(false)}
+        initialTab={expedienteTab}
+        onClose={cerrarExpediente}
       />
 
       <ConfirmDialog

@@ -10,8 +10,7 @@ export interface LogResponse {
     createdAt: string;
 }
 
-//Log page model (backend uses "logs" instead of "content")
-export interface LogPage {
+export interface LogPageResponse {
     logs: LogResponse[];
     page: number;
     size: number;

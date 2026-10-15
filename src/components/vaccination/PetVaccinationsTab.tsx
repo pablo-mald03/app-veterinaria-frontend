@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, RefreshCw, Syringe } from "lucide-react";
+import { Download, Plus, RefreshCw, Syringe } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import Can from "@/components/auth/Can";
 import Alert from "@/components/ui/common/Alert";
@@ -13,6 +13,7 @@ import VaccinationStatusBadge from "@/components/vaccination/VaccinationStatusBa
 import { daysFromToday, describeDue, formatDate } from "@/lib/vaccination/dates";
 import { latestPerVaccine, sortByAppliedDesc } from "@/lib/vaccination/records";
 import { createPetVaccination } from "@/services/vaccinationService";
+import { downloadVaccinationCardPdf } from "@/services/vaccinationCardPdfService";
 import type { Mascota } from "@/types/pet";
 import type { VaccinationInput, VaccinationView } from "@/types/vaccination";
 
@@ -30,6 +31,7 @@ export default function PetVaccinationsTab({ mascota, records, loading, error, o
     const toast = useToast();
     const { user } = useAuth();
     const [formOpen, setFormOpen] = useState(false);
+    const [downloadingPdf, setDownloadingPdf] = useState(false);
 
     // Solo la última dosis de cada vacuna tiene estado vigente; las anteriores quedaron superadas.
     const latestIds = new Set(latestPerVaccine(records).map((record) => record.idVaccination));
@@ -54,20 +56,50 @@ export default function PetVaccinationsTab({ mascota, records, loading, error, o
         }
     };
 
+    const handleGeneratePdf = async () => {
+        setDownloadingPdf(true);
+        try {
+            const blob = await downloadVaccinationCardPdf(Number(mascota.id));
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `carnet-vacunacion-${mascota.id}.pdf`;
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "No se pudo generar el PDF del carnet.";
+            toast.error(message, "Error al generar carnet");
+        } finally {
+            setDownloadingPdf(false);
+        }
+    };
+
     return (
         <div>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <h3 className="text-sm font-bold text-text">Carnet de vacunación</h3>
 
-                <Can permission="vacunacion:crear">
+                <div className="flex flex-wrap items-center justify-end gap-2">
                     <Button
                         type="button"
-                        icon={<Plus className="h-4 w-4" />}
-                        onClick={() => setFormOpen(true)}
+                        variant="ghost"
+                        icon={<Download className="h-4 w-4" />}
+                        onClick={() => void handleGeneratePdf()}
+                        loading={downloadingPdf}
                     >
-                        Registrar vacuna
+                        Generar PDF
                     </Button>
-                </Can>
+
+                    <Can permission="vacunacion:crear">
+                        <Button
+                            type="button"
+                            icon={<Plus className="h-4 w-4" />}
+                            onClick={() => setFormOpen(true)}
+                        >
+                            Registrar vacuna
+                        </Button>
+                    </Can>
+                </div>
             </div>
 
             {loading ? (

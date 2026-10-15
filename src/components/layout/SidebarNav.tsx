@@ -13,7 +13,7 @@ interface SidebarNavProps {
 //Principal sidebar nav component
 export default function SidebarNav({ collapsed = false, onNavigate }: SidebarNavProps) {
     const pathname = usePathname();
-    const { hasPermission } = useAuth();
+    const { hasPermission, hasRole } = useAuth();
 
     return (
         <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
@@ -22,7 +22,10 @@ export default function SidebarNav({ collapsed = false, onNavigate }: SidebarNav
             )}
             <ul className="flex flex-col gap-2">
                 {NAV_ITEMS
-                    .filter((item) => item.permission === null || hasPermission(item.permission))
+                    .filter((item) =>
+                        (!item.adminOnly || hasRole("ADMIN")) &&
+                        (item.permission === null || hasPermission(item.permission))
+                    )
                     .map((item) => {
                         const isActive =
                             item.href === "/dashboard"

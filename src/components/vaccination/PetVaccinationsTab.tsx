@@ -13,6 +13,7 @@ import VaccinationStatusBadge from "@/components/vaccination/VaccinationStatusBa
 import { daysFromToday, describeDue, formatDate } from "@/lib/vaccination/dates";
 import { latestPerVaccine, sortByAppliedDesc } from "@/lib/vaccination/records";
 import { createPetVaccination } from "@/services/vaccinationService";
+import { downloadVaccinationCardPdf } from "@/services/vaccinationCardPdfService";
 import type { Mascota } from "@/types/pet";
 import type { VaccinationInput, VaccinationView } from "@/types/vaccination";
 
@@ -30,6 +31,7 @@ export default function PetVaccinationsTab({ mascota, records, loading, error, o
     const toast = useToast();
     const { user } = useAuth();
     const [formOpen, setFormOpen] = useState(false);
+    const [downloadingPdf, setDownloadingPdf] = useState(false);
 
     // Solo la última dosis de cada vacuna tiene estado vigente; las anteriores quedaron superadas.
     const latestIds = new Set(latestPerVaccine(records).map((record) => record.idVaccination));
@@ -54,8 +56,22 @@ export default function PetVaccinationsTab({ mascota, records, loading, error, o
         }
     };
 
-    const handleGeneratePdf = () => {
-        toast.info("La generación del PDF estará disponible cuando se conecte el endpoint.", "Carnet de vacunación");
+    const handleGeneratePdf = async () => {
+        setDownloadingPdf(true);
+        try {
+            const blob = await downloadVaccinationCardPdf(Number(mascota.id));
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `carnet-vacunacion-${mascota.id}.pdf`;
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "No se pudo generar el PDF del carnet.";
+            toast.error(message, "Error al generar carnet");
+        } finally {
+            setDownloadingPdf(false);
+        }
     };
 
     return (
@@ -68,7 +84,8 @@ export default function PetVaccinationsTab({ mascota, records, loading, error, o
                         type="button"
                         variant="ghost"
                         icon={<Download className="h-4 w-4" />}
-                        onClick={handleGeneratePdf}
+                        onClick={() => void handleGeneratePdf()}
+                        loading={downloadingPdf}
                     >
                         Generar PDF
                     </Button>

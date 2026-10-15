@@ -66,6 +66,12 @@ export const ENDPOINTS = {
     INVOICE: (paymentId: number) => `${API_BASE_URL}/payments/${paymentId}/invoice`,
   },
 
+  REPORTS: {
+    ATTENDED_PETS: `${API_BASE_URL}/reports/attended-pets`,
+    FREQUENT_TREATMENTS: `${API_BASE_URL}/reports/frequent-treatments`,
+    PENDING_VACCINES: `${API_BASE_URL}/reports/pending-vaccines`,
+  },
+
   // Logs module
   LOGS: {
     LIST: (params: URLSearchParams) => `${API_BASE_URL}/logs?${params}`,
@@ -99,6 +105,7 @@ export const ENDPOINTS = {
     // /api/v1, por eso queda "/api/v1/api/vaccination-cards". Cuando lo corrijan en el backend,
     // cambiar VACCINATION_CARDS_PATH a "/vaccination-cards" (único lugar).
     BY_PET: (petId: number) => `${API_BASE_URL}${VACCINATION_CARDS_PATH}/pet/${petId}`,
+    PDF_BY_PET: (petId: number) => `${API_BASE_URL}${VACCINATION_CARDS_PATH}/pet/${petId}/pdf`,
   },
   VACCINATION_RECORDS: {
     BASE: `${API_BASE_URL}/vaccination-records`,

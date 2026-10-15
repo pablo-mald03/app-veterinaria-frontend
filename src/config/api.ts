@@ -58,6 +58,14 @@ export const ENDPOINTS = {
     STATUS: (id: number) => `${API_BASE_URL}/category/${id}/status`,
   },
 
+  PAYMENTS: {
+    BY_APPOINTMENT: (appointmentId: number) => `${API_BASE_URL}/payments/appointment/${appointmentId}`,
+    OPEN: (appointmentId: number) => `${API_BASE_URL}/payments/appointment/${appointmentId}`,
+    ADD_ITEM: (appointmentId: number) => `${API_BASE_URL}/payments/appointment/${appointmentId}/items`,
+    PAY: (paymentId: number) => `${API_BASE_URL}/payments/${paymentId}/pay`,
+    INVOICE: (paymentId: number) => `${API_BASE_URL}/payments/${paymentId}/invoice`,
+  },
+
   // Logs module
   LOGS: {
     LIST: (params: URLSearchParams) => `${API_BASE_URL}/logs?${params}`,

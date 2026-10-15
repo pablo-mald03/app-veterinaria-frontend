@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, RefreshCw, Syringe } from "lucide-react";
+import { Download, Plus, RefreshCw, Syringe } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import Can from "@/components/auth/Can";
 import Alert from "@/components/ui/common/Alert";
@@ -54,20 +54,35 @@ export default function PetVaccinationsTab({ mascota, records, loading, error, o
         }
     };
 
+    const handleGeneratePdf = () => {
+        toast.info("La generación del PDF estará disponible cuando se conecte el endpoint.", "Carnet de vacunación");
+    };
+
     return (
         <div>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <h3 className="text-sm font-bold text-text">Carnet de vacunación</h3>
 
-                <Can permission="vacunacion:crear">
+                <div className="flex flex-wrap items-center justify-end gap-2">
                     <Button
                         type="button"
-                        icon={<Plus className="h-4 w-4" />}
-                        onClick={() => setFormOpen(true)}
+                        variant="ghost"
+                        icon={<Download className="h-4 w-4" />}
+                        onClick={handleGeneratePdf}
                     >
-                        Registrar vacuna
+                        Generar PDF
                     </Button>
-                </Can>
+
+                    <Can permission="vacunacion:crear">
+                        <Button
+                            type="button"
+                            icon={<Plus className="h-4 w-4" />}
+                            onClick={() => setFormOpen(true)}
+                        >
+                            Registrar vacuna
+                        </Button>
+                    </Can>
+                </div>
             </div>
 
             {loading ? (

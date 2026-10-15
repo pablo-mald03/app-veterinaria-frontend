@@ -50,6 +50,14 @@ export const ENDPOINTS = {
     STATUS: (id: number) => `${API_BASE_URL}/rooms/${id}/status`,
   },
 
+  CATEGORIES: {
+    LIST: (params: URLSearchParams) => `${API_BASE_URL}/category?${params}`,
+    DETAIL: (id: number) => `${API_BASE_URL}/category/${id}`,
+    CREATE: `${API_BASE_URL}/category`,
+    UPDATE: (id: number) => `${API_BASE_URL}/category/${id}`,
+    STATUS: (id: number) => `${API_BASE_URL}/category/${id}/status`,
+  },
+
   // Logs module
   LOGS: {
     LIST: (params: URLSearchParams) => `${API_BASE_URL}/logs?${params}`,

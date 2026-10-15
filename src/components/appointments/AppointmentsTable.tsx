@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarDays, Edit3, History, PawPrint, Plus, Power, Trash2, UserRound } from "lucide-react";
+import { CalendarDays, Edit3, History, PawPrint, Plus, Power, Receipt, Trash2, UserRound } from "lucide-react";
 import { appointmentService } from "@/services/appointmentService";
 import type { AppointmentFormData, AppointmentResponse } from "@/types/appointment";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -23,6 +23,7 @@ import Button from "@/components/ui/common/Button";
 import ConfirmDialog from "@/components/ui/dialogs/Confirmdialog";
 import type { TableColumn } from "@/components/ui/types/tableTypes";
 import AppointmentModal, { type HistoryState } from "@/components/appointments/AppointmentModal";
+import PaymentModal from "@/components/payments/PaymentModal";
 
 const EMPTY_HISTORY: HistoryState = { petName: "", rows: [], loading: false };
 
@@ -101,6 +102,7 @@ export default function AppointmentsTable() {
     const [editingAppointment, setEditingAppointment] = useState<AppointmentResponse | null>(null);
     const [history, setHistory] = useState<HistoryState>(EMPTY_HISTORY);
     const [deleteTarget, setDeleteTarget] = useState<AppointmentResponse | null>(null);
+    const [paymentAppointment, setPaymentAppointment] = useState<AppointmentResponse | null>(null);
 
     const handleOpenCreate = () => {
         setEditingAppointment(null);
@@ -296,6 +298,13 @@ export default function AppointmentsTable() {
                                     visible: true,
                                 },
                                 {
+                                    icon: <Receipt className="h-4 w-4" />,
+                                    label: "Gestionar cobro",
+                                    onClick: () => setPaymentAppointment(a),
+                                    variant: "default",
+                                    visible: canEdit,
+                                },
+                                {
                                     icon: <Edit3 className="h-4 w-4" />,
                                     label: "Editar cita",
                                     onClick: () => handleOpenEdit(a),
@@ -350,6 +359,13 @@ export default function AppointmentsTable() {
                 confirmLabel="Eliminar"
                 onConfirm={handleConfirmDelete}
                 onCancel={() => setDeleteTarget(null)}
+            />
+
+            <PaymentModal
+                open={paymentAppointment !== null}
+                appointmentId={paymentAppointment?.id ?? null}
+                petName={paymentAppointment ? catalogs.petName(paymentAppointment.petId) : ""}
+                onClose={() => setPaymentAppointment(null)}
             />
         </div>
     );

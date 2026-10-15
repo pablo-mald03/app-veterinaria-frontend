@@ -50,6 +50,28 @@ export const ENDPOINTS = {
     STATUS: (id: number) => `${API_BASE_URL}/rooms/${id}/status`,
   },
 
+  CATEGORIES: {
+    LIST: (params: URLSearchParams) => `${API_BASE_URL}/category?${params}`,
+    DETAIL: (id: number) => `${API_BASE_URL}/category/${id}`,
+    CREATE: `${API_BASE_URL}/category`,
+    UPDATE: (id: number) => `${API_BASE_URL}/category/${id}`,
+    STATUS: (id: number) => `${API_BASE_URL}/category/${id}/status`,
+  },
+
+  PAYMENTS: {
+    BY_APPOINTMENT: (appointmentId: number) => `${API_BASE_URL}/payments/appointment/${appointmentId}`,
+    OPEN: (appointmentId: number) => `${API_BASE_URL}/payments/appointment/${appointmentId}`,
+    ADD_ITEM: (appointmentId: number) => `${API_BASE_URL}/payments/appointment/${appointmentId}/items`,
+    PAY: (paymentId: number) => `${API_BASE_URL}/payments/${paymentId}/pay`,
+    INVOICE: (paymentId: number) => `${API_BASE_URL}/payments/${paymentId}/invoice`,
+  },
+
+  REPORTS: {
+    ATTENDED_PETS: `${API_BASE_URL}/reports/attended-pets`,
+    FREQUENT_TREATMENTS: `${API_BASE_URL}/reports/frequent-treatments`,
+    PENDING_VACCINES: `${API_BASE_URL}/reports/pending-vaccines`,
+  },
+
   // Logs module
   LOGS: {
     LIST: (params: URLSearchParams) => `${API_BASE_URL}/logs?${params}`,
@@ -83,6 +105,7 @@ export const ENDPOINTS = {
     // /api/v1, por eso queda "/api/v1/api/vaccination-cards". Cuando lo corrijan en el backend,
     // cambiar VACCINATION_CARDS_PATH a "/vaccination-cards" (único lugar).
     BY_PET: (petId: number) => `${API_BASE_URL}${VACCINATION_CARDS_PATH}/pet/${petId}`,
+    PDF_BY_PET: (petId: number) => `${API_BASE_URL}${VACCINATION_CARDS_PATH}/pet/${petId}/pdf`,
   },
   VACCINATION_RECORDS: {
     BASE: `${API_BASE_URL}/vaccination-records`,

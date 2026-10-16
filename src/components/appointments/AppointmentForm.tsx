@@ -100,12 +100,16 @@ export default function AppointmentForm({ editingAppointment, appointments, fixe
         const results = fields.map((f) => f.validate());
         if (!results.every(Boolean)) return;
 
+        const formattedHour = hour.value.length === 5
+            ? `${hour.value}:00`
+            : hour.value;
+
         const payload: AppointmentFormData = {
             petId: Number(petId.value),
             userId: Number(userId.value),
             roomId: Number(roomId.value),
             date: date.value,
-            hour: hour.value,
+            hour: formattedHour, // <- usar la variable formateada
             description: description.value.trim(),
             status: status.value,
             diagnosis: diagnosis.value.trim(),

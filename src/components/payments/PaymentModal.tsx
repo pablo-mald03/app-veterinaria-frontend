@@ -9,7 +9,8 @@ import Dropdown, { type DropdownOption } from "@/components/ui/common/Dropdown";
 import StatusBadge from "@/components/ui/common/StatusBadge";
 import { useToast } from "@/components/ui/toast/ToastProvider";
 import { paymentService } from "@/services/paymentService";
-import type { Payment, PaymentItemRequest } from "@/types/payment";
+import AppointmentSupplies from "@/components/appointments/AppointmentSupplies";
+import type { Payment, PaymentItemRequest, SupplyLine } from "@/types/payment";
 
 interface PaymentModalProps {
     open: boolean;
@@ -28,7 +29,6 @@ const ITEM_TYPES: DropdownOption[] = [
     { value: "CONSULTATION", label: "Consulta" },
     { value: "VACCINE", label: "Vacuna" },
     { value: "TREATMENT", label: "Tratamiento" },
-    { value: "SUPPLY", label: "Insumo" },
 ];
 
 const EMPTY_ITEM: PaymentItemRequest = {
@@ -49,11 +49,13 @@ export default function PaymentModal({ open, appointmentId, petName, onClose }: 
     const [saving, setSaving] = useState(false);
     const [item, setItem] = useState<PaymentItemRequest>(EMPTY_ITEM);
     const [paymentMethod, setPaymentMethod] = useState("");
+    const [supplyLines, setSupplyLines] = useState<SupplyLine[]>([]);
 
     useEffect(() => {
         if (!open || appointmentId === null) return;
         void Promise.resolve().then(() => {
             setPayment(null);
+            setSupplyLines([]);
             setLoading(true);
             return paymentService.getByAppointment(appointmentId)
                 .then(setPayment)
@@ -88,6 +90,20 @@ export default function PaymentModal({ open, appointmentId, petName, onClose }: 
             toast.success("Cargo agregado", item.description);
         } catch (error) {
             toast.error(error instanceof Error ? error.message : "No se pudo agregar el cargo.", "Error");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const addSupplies = async () => {
+        if (appointmentId === null || supplyLines.length === 0) return;
+        setSaving(true);
+        try {
+            setPayment(await paymentService.addSupplies(appointmentId, supplyLines));
+            setSupplyLines([]);
+            toast.success("Productos agregados a la cuenta", petName);
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "No se pudieron agregar los productos.", "Error");
         } finally {
             setSaving(false);
         }
@@ -145,16 +161,10 @@ export default function PaymentModal({ open, appointmentId, petName, onClose }: 
 
                     {payment.status !== "PAID" && (
                         <>
-                            <form onSubmit={addItem} className="space-y-3 rounded-xl border border-secondary p-4">
-                                <h3 className="font-semibold text-text">Agregar cargo</h3>
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    <TextField label="Descripción" value={item.description} onValueChange={(value) => setItem((current) => ({ ...current, description: value }))} required />
-                                    <Dropdown label="Tipo" options={ITEM_TYPES} value={item.referenceType} onValueChange={(value) => setItem((current) => ({ ...current, referenceType: value }))} />
-                                    <TextField label="Cantidad" type="number" min={1} value={String(item.quantity)} onValueChange={(value) => setItem((current) => ({ ...current, quantity: Number(value) || 1 }))} required />
-                                    <TextField label="Precio unitario" type="number" min={0} step="0.01" value={String(item.unitPrice)} onValueChange={(value) => setItem((current) => ({ ...current, unitPrice: Number(value) || 0 }))} required />
-                                </div>
-                                <Button type="submit" loading={saving} icon={<Plus className="h-4 w-4" />}>Agregar cargo</Button>
-                            </form>
+                            <div className="space-y-3 rounded-xl border border-secondary p-4">
+                                <AppointmentSupplies value={supplyLines} onChange={setSupplyLines} hint="Arma la lista y cárgala a la cuenta con un solo clic." />
+                                <Button type="button" disabled={supplyLines.length === 0} loading={saving} icon={<Plus className="h-4 w-4" />} onClick={() => void addSupplies()}>Agregar productos a la cuenta</Button>
+                            </div>
                             <div className="flex flex-wrap items-end gap-3 rounded-xl border border-secondary p-4">
                                 <Dropdown label="Método de pago" options={PAYMENT_METHODS} value={paymentMethod} onValueChange={setPaymentMethod} placeholder="Selecciona un método" />
                                 <Button disabled={!paymentMethod} loading={saving} icon={<CreditCard className="h-4 w-4" />} onClick={() => void processPayment()}>Procesar pago</Button>

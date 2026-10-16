@@ -50,7 +50,7 @@ function ExpedienteContent({ mascota, initialTab, onClose }: ExpedienteContentPr
   const tabs: { value: ExpedienteTab; label: string }[] = canViewVaccines
     ? [
         { value: "consultas", label: "Consultas" },
-        { value: "vacunas", label: "Vacunas" },
+        { value: "vacunas", label: "Tratamientos" },
       ]
     : [{ value: "consultas", label: "Consultas" }];
 

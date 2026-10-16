@@ -20,7 +20,7 @@ export async function getVaccineCatalog(): Promise<VaccineResponse[]> {
   });
 
   const response = await apiFetch(`${ENDPOINTS.VACCINES.LIST}?${params}`);
-  await ensureOk(response, "No se pudo cargar el catálogo de vacunas.");
+  await ensureOk(response, "No se pudo cargar el catálogo de tratamientos.");
 
   const data = (await response.json()) as Page<VaccineResponse> | VaccineResponse[];
   return Array.isArray(data) ? data : (data?.content ?? []);

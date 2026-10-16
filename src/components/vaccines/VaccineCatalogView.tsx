@@ -56,11 +56,11 @@ export default function VaccineCatalogView() {
         try {
             setDeactivating(true);
             await deactivateVaccine(vaccineToDeactivate.idVaccine);
-            toast.success("Vacuna desactivada", vaccineToDeactivate.name);
+            toast.success("Tratamiento desactivada", vaccineToDeactivate.name);
             setVaccineToDeactivate(null);
             reload();
         } catch (err) {
-            toast.error(err instanceof Error ? err.message : "No se pudo desactivar la vacuna.", "Error");
+            toast.error(err instanceof Error ? err.message : "No se pudo desactivar el tratamiento.", "Error");
         } finally {
             setDeactivating(false);
         }
@@ -83,11 +83,11 @@ export default function VaccineCatalogView() {
             render: (v) =>
                 v.status ? (
                     <span className="inline-flex items-center gap-1 rounded-full border border-success-border bg-success-soft px-2.5 py-1 text-xs font-semibold text-success">
-                        <CheckCircle2 className="h-3.5 w-3.5" /> Activa
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Activo
                     </span>
                 ) : (
                     <span className="inline-flex items-center gap-1 rounded-full border border-secondary bg-mint px-2.5 py-1 text-xs font-semibold text-text/60">
-                        <Ban className="h-3.5 w-3.5" /> Inactiva
+                        <Ban className="h-3.5 w-3.5" /> Inactivo
                     </span>
                 ),
         },
@@ -96,12 +96,12 @@ export default function VaccineCatalogView() {
     return (
         <div className="flex min-h-full flex-col gap-6 bg-white p-8">
             <PageHeader
-                title="Catálogo de Vacunas"
-                subtitle="Alta temporal de vacunas mientras no existe un módulo de inventario."
+                title="Catálogo de tratamientos"
+                subtitle="Alta temporal de tratamientos mientras no existe un módulo de inventario."
                 action={
                     <Can permission="vacunacion:crear">
                         <Button type="button" icon={<Plus className="h-4 w-4" />} onClick={() => setFormOpen(true)}>
-                            Nueva vacuna
+                            Nuevo Tratamiento
                         </Button>
                     </Can>
                 }
@@ -124,8 +124,8 @@ export default function VaccineCatalogView() {
                 error={error}
                 loadingLabel="Cargando catálogo..."
                 emptyState={{
-                    title: search ? "Sin resultados" : "Aún no hay vacunas registradas",
-                    description: search ? "Prueba con otro nombre o especie." : "Crea la primera vacuna del catálogo.",
+                    title: search ? "Sin resultados" : "Aún no hay tratamientos registradas",
+                    description: search ? "Prueba con otro nombre o especie." : "Crea el primer tratamiento del catálogo.",
                     icon: <Syringe className="h-6 w-6 text-accent" />,
                 }}
                 actions={
@@ -160,11 +160,11 @@ export default function VaccineCatalogView() {
 
             <ConfirmDialog
                 open={vaccineToDeactivate !== null}
-                title="Desactivar vacuna"
+                title="Desactivar Tratamiento"
                 description={
                     <>
                         ¿Desactivar <strong>{vaccineToDeactivate?.name}</strong>? Dejará de aparecer como opción al
-                        registrar nuevas vacunas, pero el historial ya registrado no se modifica.
+                        registrar nuevos tratamientos, pero el historial ya registrado no se modifica.
                     </>
                 }
                 variant="warning"

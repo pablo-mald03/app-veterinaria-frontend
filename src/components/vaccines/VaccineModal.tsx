@@ -13,7 +13,7 @@ interface VaccineModalProps {
 //Modal para crear una vacuna en el catálogo
 export default function VaccineModal({ open, onClose, onSave }: VaccineModalProps) {
     return (
-        <Modal open={open} onClose={onClose} size="lg" title="Nueva vacuna" subtitle="Catálogo de vacunas">
+        <Modal open={open} onClose={onClose} size="lg" title="Nuevo tratamiento" subtitle="Catálogo de tratamientos">
             <VaccineForm onSubmit={onSave} onCancel={onClose} />
         </Modal>
     );

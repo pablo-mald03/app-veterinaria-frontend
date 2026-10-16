@@ -1,3 +1,5 @@
+import type { SupplyLine } from "@/types/payment";
+
 export interface AppointmentResponse {
     id: number;
     petId: number;
@@ -39,4 +41,5 @@ export interface AppointmentFormData extends AppointmentRequest {
     diagnosis?: string;
     treatment?: string;
     cost?: number;
+    supplies?: SupplyLine[];
 }

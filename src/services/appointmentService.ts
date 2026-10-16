@@ -1,6 +1,6 @@
 import { ENDPOINTS } from "@/config/api";
 import { apiFetch } from "@/lib/api/apiFetch";
-import { JSON_HEADERS } from "@/lib/api/http";
+import { JSON_HEADERS, readList } from "@/lib/api/http";
 import { ensureOk } from "@/lib/api/ensureOk";
 import type {
     AppointmentDiagnosisRequest,
@@ -34,7 +34,7 @@ export const appointmentService = {
         const response = await apiFetch(ENDPOINTS.APPOINTMENTS.PET_HISTORY(petId));
 
         await ensureOk(response, "Error al obtener el historial de la mascota.");
-        return response.json();
+        return readList<AppointmentResponse>(response);
     },
 
     create: (data: AppointmentRequest) =>

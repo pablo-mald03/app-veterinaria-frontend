@@ -39,8 +39,7 @@ export interface RoomFilters {
     size?: number;
     sortBy?: string;
     direction?: "asc" | "desc";
-    name?: string;
-    location?: string;
-    number?: number;
+    /** Free text: matches name, number or location */
+    search?: string;
     status?: boolean;
 }

@@ -9,6 +9,8 @@ import { useToast } from "@/components/ui/toast/ToastProvider";
 import { useAppointmentCatalogs } from "@/hooks/useAppointmentCatalogs";
 import { useAppointmentScope } from "@/hooks/useAppointmentScope";
 import { usePaginationState } from "@/hooks/usePaginationState";
+import { usePaymentStatuses } from "@/hooks/usePaymentStatuses";
+import { formatCost } from "@/lib/consultation/money";
 import { compareByDateDesc, formatDate, formatHour, matchesFilters, STATUS_OPTIONS, statusLabel, statusVariant } from "@/lib/appointments/utils";
 import DataTable from "@/components/ui/table/DataTable";
 import RowActions from "@/components/ui/table/RowActions";
@@ -21,9 +23,10 @@ import TextField from "@/components/ui/common/TextField";
 import Dropdown from "@/components/ui/common/Dropdown";
 import Button from "@/components/ui/common/Button";
 import ConfirmDialog from "@/components/ui/dialogs/Confirmdialog";
-import type { TableColumn } from "@/components/ui/types/tableTypes";
+import type { SortState, TableColumn } from "@/components/ui/types/tableTypes";
 import AppointmentModal, { type HistoryState } from "@/components/appointments/AppointmentModal";
 import PaymentModal from "@/components/payments/PaymentModal";
+import { paymentService } from "@/services/paymentService";
 
 const EMPTY_HISTORY: HistoryState = { petName: "", rows: [], loading: false };
 
@@ -66,27 +69,43 @@ export default function AppointmentsTable() {
     const [petFilter, setPetFilter] = useState("");
     const [userFilter, setUserFilter] = useState("");
 
-    const [page, setPage] = usePaginationState([size, dateFilter, statusFilter, petFilter, userFilter].join("|"));
+    // Por defecto, lo más reciente primero
+    const [sort, setSort] = useState<SortState>({ key: "date", direction: "desc" });
 
-    const filtered = useMemo(
-        () =>
-            appointments
-                .filter((a) =>
-                    matchesFilters(a, {
-                        date: dateFilter,
-                        status: statusFilter,
-                        petId: petFilter ? Number(petFilter) : undefined,
-                        userId: userFilter ? Number(userFilter) : undefined,
-                    }),
-                )
-                .sort(compareByDateDesc),
-        [appointments, dateFilter, statusFilter, petFilter, userFilter],
-    );
+    const [page, setPage] = usePaginationState([size, dateFilter, statusFilter, petFilter, userFilter, sort.key, sort.direction].join("|"));
+
+    const filtered = useMemo(() => {
+        const text = (a: string, b: string) => a.localeCompare(b, "es", { sensitivity: "base" });
+        // Comparadores en sentido ascendente; el descendente se obtiene invirtiendo el signo
+        const comparators: Record<string, (a: AppointmentResponse, b: AppointmentResponse) => number> = {
+            date: (a, b) => -compareByDateDesc(a, b),
+            pet: (a, b) => text(catalogs.petName(a.petId), catalogs.petName(b.petId)),
+            vet: (a, b) => text(catalogs.userName(a.userId), catalogs.userName(b.userId)),
+            room: (a, b) => text(catalogs.roomName(a.roomId), catalogs.roomName(b.roomId)),
+            description: (a, b) => text(a.description ?? "", b.description ?? ""),
+            status: (a, b) => text(statusLabel(a.status), statusLabel(b.status)),
+        };
+        const compare = comparators[sort.key] ?? comparators.date;
+        const sign = sort.direction === "asc" ? 1 : -1;
+
+        return appointments
+            .filter((a) =>
+                matchesFilters(a, {
+                    date: dateFilter,
+                    status: statusFilter,
+                    petId: petFilter ? Number(petFilter) : undefined,
+                    userId: userFilter ? Number(userFilter) : undefined,
+                }),
+            )
+            .sort((a, b) => sign * compare(a, b) || compareByDateDesc(a, b));
+    }, [appointments, dateFilter, statusFilter, petFilter, userFilter, sort, catalogs]);
 
     const totalElements = filtered.length;
     const totalPages = Math.ceil(totalElements / size);
     const currentPage = Math.min(page, Math.max(totalPages - 1, 0));
     const rows = filtered.slice(currentPage * size, (currentPage + 1) * size);
+
+    const payments = usePaymentStatuses(rows.map((a) => a.id));
 
     const hasFilters = Boolean(dateFilter || statusFilter || petFilter || userFilter);
 
@@ -132,11 +151,16 @@ export default function AppointmentsTable() {
     };
 
     const handleSaveAppointment = async (data: AppointmentFormData) => {
-        const { status, diagnosis, treatment, cost, ...request } = data;
+        const { status, diagnosis, treatment, cost, supplies, ...request } = data;
 
         try {
             if (editingAppointment) {
                 await appointmentService.update(editingAppointment.id, request);
+
+                // El backend exige una cuenta abierta para registrar costos o completar la cita
+                if (cost || supplies?.length || status === "COMPLETED") {
+                    await paymentService.ensureOpen(editingAppointment.id);
+                }
                 if (diagnosis || treatment || cost) {
                     await appointmentService.updateDiagnosis(editingAppointment.id, { diagnosis: diagnosis ?? "", treatment, cost });
                 }
@@ -144,9 +168,27 @@ export default function AppointmentsTable() {
                     await appointmentService.updateStatus(editingAppointment.id, status);
                 }
                 toast.success("Cita actualizada", catalogs.petName(request.petId));
+                payments.refresh([editingAppointment.id]);
+
+                // Los productos se cargan al final: si fallan, la cita ya quedó guardada y se avisa aparte
+                if (supplies?.length) {
+                    try {
+                        await paymentService.addSupplies(editingAppointment.id, supplies);
+                    } catch (err) {
+                        const message = err instanceof Error ? err.message : "Error al cargar los productos.";
+                        toast.warning(`${message} Agrégalos desde el cobro de la cita.`, "Productos no cargados");
+                    }
+                }
             } else {
-                await appointmentService.create(request);
+                const created = await appointmentService.create(request);
                 toast.success("Cita agendada", catalogs.petName(request.petId));
+
+                // La cuenta de cobro se abre junto con la cita; si falla, se abre al registrar costos o productos
+                try {
+                    await paymentService.open(created.id);
+                } catch {
+                    toast.warning("La cita quedó agendada, pero la cuenta de cobro no se pudo abrir.", "Cuenta de cobro");
+                }
             }
             setIsModalOpen(false);
             void reload();
@@ -175,35 +217,57 @@ export default function AppointmentsTable() {
     const columns: TableColumn<AppointmentResponse>[] = [
         {
             key: "date",
+            sortable: true,
             header: "Fecha y hora",
             className: "font-mono text-xs",
             render: (a) => `${formatDate(a.date)} · ${formatHour(a.hour)}`,
         },
         {
             key: "pet",
+            sortable: true,
             header: "Mascota",
             className: "font-semibold",
             render: (a) => catalogs.petName(a.petId),
         },
         {
             key: "vet",
+            sortable: true,
             header: "Veterinario",
             render: (a) => catalogs.userName(a.userId),
         },
         {
             key: "room",
+            sortable: true,
             header: "Habitación",
             render: (a) => catalogs.roomName(a.roomId),
         },
         {
             key: "description",
+            sortable: true,
             header: "Motivo",
             render: (a) => a.description || <span className="text-text/40">—</span>,
         },
         {
             key: "status",
+            sortable: true,
             header: "Estado",
             render: (a) => <StatusBadgeVariant variant={statusVariant(a.status)}>{statusLabel(a.status)}</StatusBadgeVariant>,
+        },
+        {
+            key: "payment",
+            header: "Pago",
+            render: (a) => {
+                const payment = payments.get(a.id);
+                if (payment === undefined) return <span className="text-text/40">…</span>;
+                if (payment === null) return <StatusBadgeVariant variant="gray">Sin cuenta</StatusBadgeVariant>;
+
+                const paid = payment.status === "PAID";
+                return (
+                    <div className="flex flex-col items-start gap-1">
+                        <StatusBadgeVariant variant={paid ? "success" : "warning"}>{paid ? "Pagada" : "Pendiente"}</StatusBadgeVariant>
+                    </div>
+                );
+            },
         },
     ];
 
@@ -281,6 +345,8 @@ export default function AppointmentsTable() {
                 loading={loading || catalogs.loading}
                 error={error}
                 loadingLabel="Cargando citas..."
+                sort={sort}
+                onSortChange={setSort}
                 emptyState={{
                     title: "No hay citas para mostrar",
                     description: "Ajusta los filtros o agenda una nueva cita.",
@@ -365,7 +431,10 @@ export default function AppointmentsTable() {
                 open={paymentAppointment !== null}
                 appointmentId={paymentAppointment?.id ?? null}
                 petName={paymentAppointment ? catalogs.petName(paymentAppointment.petId) : ""}
-                onClose={() => setPaymentAppointment(null)}
+                onClose={() => {
+                    if (paymentAppointment) payments.refresh([paymentAppointment.id]);
+                    setPaymentAppointment(null);
+                }}
             />
         </div>
     );

@@ -1,5 +1,6 @@
 "use client";
 
+import { History } from "lucide-react";
 import Modal from "@/components/ui/common/Modal";
 import Spinner from "@/components/ui/common/Spinner";
 import StatusBadgeVariant from "@/components/ui/common/StatusBadgeVariant";
@@ -51,7 +52,13 @@ export default function AppointmentModal({
                         <Spinner />
                     </div>
                 ) : history.rows.length === 0 ? (
-                    <p className="py-8 text-center text-sm text-text/60">No hay citas registradas para esta mascota.</p>
+                    <div className="flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-secondary py-10 text-center">
+                        <History className="mb-1 h-6 w-6 text-accent" aria-hidden="true" />
+                        <p className="text-sm font-medium text-text">Esta mascota aún no tiene citas atendidas</p>
+                        <p className="text-xs text-text/60">
+                            Cuando se complete una cita{history.petName ? ` de ${history.petName}` : ""}, va a aparecer en este historial.
+                        </p>
+                    </div>
                 ) : (
                     <ul className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto pr-1">
                         {history.rows.map((item) => (

@@ -1,6 +1,7 @@
 import { ENDPOINTS } from "@/config/api";
 import { apiFetch } from "@/lib/api/apiFetch";
 import { ensureOk } from "@/lib/api/ensureOk";
+import { readList } from "@/lib/api/http";
 import type { ConsultationBackend } from "@/services/consultationBackend";
 import type {
   AppointmentRequest,
@@ -14,11 +15,8 @@ export const consultationHttp: ConsultationBackend = {
   async getHistoryByPet(petId) {
     const response = await apiFetch(ENDPOINTS.APPOINTMENTS.HISTORY_BY_PET(petId));
 
-    // El backend responde 204 cuando la mascota no tiene consultas completadas.
-    if (response.status === 204) return [];
-
     await ensureOk(response, "No se pudo cargar el historial de consultas.");
-    return (await response.json()) as AppointmentResponse[];
+    return readList<AppointmentResponse>(response);
   },
 
   async createAppointment(request: AppointmentRequest) {

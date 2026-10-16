@@ -18,11 +18,13 @@ import {
 import { DEFAULT_STATUS, STATUS_OPTIONS, todayLocal, validateDateNotPast, validateSchedule } from "@/lib/appointments/utils";
 import type { AppointmentCatalogs } from "@/hooks/useAppointmentCatalogs";
 import type { AppointmentFormData, AppointmentResponse } from "@/types/appointment";
+import type { SupplyLine } from "@/types/payment";
 import TextField from "@/components/ui/common/TextField";
 import TextArea from "@/components/ui/common/TextArea";
 import Dropdown from "@/components/ui/common/Dropdown";
 import Button from "@/components/ui/common/Button";
 import Alert from "@/components/ui/common/Alert";
+import AppointmentSupplies from "@/components/appointments/AppointmentSupplies";
 
 interface AppointmentFormProps {
     editingAppointment: AppointmentResponse | null;
@@ -55,6 +57,7 @@ export default function AppointmentForm({ editingAppointment, appointments, fixe
 
     const [submitting, setSubmitting] = useState(false);
     const [generalError, setGeneralError] = useState<string | null>(null);
+    const [supplies, setSupplies] = useState<SupplyLine[]>([]);
 
     const keepsDate = (d: string) => isEditing && d === initial.date;
     const keepsSchedule = (d: string, h: string) => keepsDate(d) && h === initial.hour;
@@ -108,6 +111,7 @@ export default function AppointmentForm({ editingAppointment, appointments, fixe
             diagnosis: diagnosis.value.trim(),
             treatment: treatment.value.trim(),
             cost: cost.value ? Number(cost.value) : undefined,
+            supplies,
         };
 
         try {
@@ -202,6 +206,7 @@ export default function AppointmentForm({ editingAppointment, appointments, fixe
                         clearable
                         {...cost.props}
                     />
+                    <AppointmentSupplies value={supplies} onChange={setSupplies} hint="Se cargan a la cuenta de cobro de la cita al guardar." />
                 </div>
             )}
 

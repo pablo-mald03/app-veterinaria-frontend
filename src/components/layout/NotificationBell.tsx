@@ -74,12 +74,12 @@ export default function NotificationBell() {
                 <div
                     id={panelId}
                     role="dialog"
-                    aria-label="Vacunas por vencer"
+                    aria-label="Tratamientos por vencer"
                     className="fixed inset-x-4 top-[4.5rem] z-50 overflow-hidden rounded-2xl md:absolute md:inset-x-auto md:right-0 md:top-full md:mt-3 md:w-96 border border-secondary bg-white shadow-lg motion-safe:animate-modal-in"
                 >
                     <div className="flex items-center gap-2 border-b border-mint px-4 py-3">
                         <Syringe className="h-4 w-4 text-accent" aria-hidden="true" />
-                        <h2 className="text-sm font-bold text-text">Vacunas por vencer</h2>
+                        <h2 className="text-sm font-bold text-text">Tratamientos por vencer</h2>
                         {count > 0 && <span className="ml-auto text-xs text-text/60">{count} pendientes</span>}
                     </div>
 
@@ -98,7 +98,7 @@ export default function NotificationBell() {
                     ) : count === 0 ? (
                         <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
                             <CheckCircle2 className="h-6 w-6 text-success" aria-hidden="true" />
-                            <p className="text-sm font-medium text-text">No hay vacunas pendientes</p>
+                            <p className="text-sm font-medium text-text">No hay taratamientos pendientes</p>
                             <p className="text-xs text-text/60">Los pacientes están al día.</p>
                         </div>
                     ) : (

@@ -52,7 +52,7 @@ export default function ReportsPage() {
         }
         const parsedDays = Number(days);
         if (!Number.isInteger(parsedDays) || parsedDays < 1) {
-            setError("Los días de vacunas pendientes deben ser un número mayor que cero.");
+            setError("Los días de tratamientos pendientes deben ser un número mayor que cero.");
             return;
         }
 
@@ -107,7 +107,7 @@ export default function ReportsPage() {
                 <div className="grid gap-4 md:grid-cols-3">
                     <TextField label="Desde" type="date" value={from} onValueChange={setFrom} />
                     <TextField label="Hasta" type="date" value={to} onValueChange={setTo} />
-                    <TextField label="Días de vacunas pendientes" type="number" min={1} value={days} onValueChange={setDays} />
+                    <TextField label="Días de tratamientos pendientes" type="number" min={1} value={days} onValueChange={setDays} />
                 </div>
                 <Button className="mt-4" onClick={() => void loadReports()} loading={loading}>
                     Actualizar reportes
@@ -158,8 +158,8 @@ export default function ReportsPage() {
                 </ReportCard>
 
                 <ReportCard
-                    title="Vacunas pendientes"
-                    description={`Vacunas con próxima dosis dentro de ${days} días.`}
+                    title="Tratamientos pendientes"
+                    description={`Tratamiento con próxima dosis dentro de ${days} días.`}
                     icon={<Syringe className="h-6 w-6 text-accent" />}
                     count={pendingVaccines.length}
                     loading={downloading === "vaccines"}

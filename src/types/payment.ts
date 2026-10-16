@@ -19,6 +19,14 @@ export interface Payment {
     items: PaymentItem[];
 }
 
+//Product used during a consultation, charged to the appointment account as a SUPPLY item
+export interface SupplyLine {
+    productId: number;
+    description: string;
+    quantity: number;
+    unitPrice: number;
+}
+
 export interface PaymentItemRequest {
     description: string;
     quantity: number;

@@ -29,7 +29,7 @@ export const vaccinationHttp: VaccinationBackend = {
     });
 
     const response = await apiFetch(`${ENDPOINTS.VACCINES.LIST}?${params}`);
-    await ensureOk(response, "No se pudo cargar el catálogo de vacunas.");
+    await ensureOk(response, "No se pudo cargar el catálogo de tratamientos.");
 
     return toList<VaccineResponse>(await response.json());
   },
@@ -65,14 +65,14 @@ export const vaccinationHttp: VaccinationBackend = {
       body: JSON.stringify(request),
     });
 
-    await ensureOk(response, "No se pudo registrar la vacuna.");
+    await ensureOk(response, "No se pudo registrar el tratamiento.");
     return (await response.json()) as VaccinationRecordResponse;
   },
 
   async getPending(days) {
     const response = await apiFetch(ENDPOINTS.VACCINATION_RECORDS.PENDING(days));
 
-    await ensureOk(response, "No se pudieron cargar las vacunas por vencer.");
+    await ensureOk(response, "No se pudieron cargar los tratamientos por vencer.");
     return toList<VaccinationRecordResponse>(await response.json());
   },
 };

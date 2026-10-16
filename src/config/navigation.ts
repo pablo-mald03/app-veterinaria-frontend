@@ -29,7 +29,7 @@ export const NAV_ITEMS: NavItem[] = [
     { name: "Habitaciones", href: "/dashboard/rooms", icon: BedDouble, permission: "salas:ver" },
     { name: "Agenda de Citas", href: "/dashboard/appointment", icon: CalendarDays, permission: "citas:ver" },
     { name: "Farmacia e Inventario", href: "/dashboard/inventory", icon: Pill, permission: "inventario:ver" },
-    { name: "Catálogo de Vacunas", href: "/dashboard/vaccines", icon: Syringe, permission: "vacunacion:ver" },
+    { name: "Catálogo de Tratamientos", href: "/dashboard/vaccines", icon: Syringe, permission: "vacunacion:ver" },
     { name: "Gestión de Documentos", href: "/documentos", icon: Folder, permission: "documentos:ver" },
     { name: "Recursos Humanos", href: "/dashboard/users", icon: Users, permission: "usuarios:ver" },
     { name: "Roles y Permisos", href: "/dashboard/roles", icon: ShieldCheck, permission: "roles:ver" },

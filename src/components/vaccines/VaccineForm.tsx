@@ -55,7 +55,7 @@ export default function VaccineForm({ onSubmit, onCancel }: VaccineFormProps) {
             setSubmitting(true);
             await onSubmit(input);
         } catch (err) {
-            setGeneralError(err instanceof Error ? err.message : "No se pudo crear la vacuna.");
+            setGeneralError(err instanceof Error ? err.message : "No se pudo crear el tratamiento.");
         } finally {
             setSubmitting(false);
         }

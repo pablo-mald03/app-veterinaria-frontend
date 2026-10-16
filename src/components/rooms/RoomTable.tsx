@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Ban, DoorOpen, Edit3, Hash, MapPin, Plus, Power, ShieldCheck } from "lucide-react";
+import { Ban, DoorOpen, Edit3, Plus, Power, Search, ShieldCheck } from "lucide-react";
 import { roomService } from "@/services/roomService";
 import type { RoomDetailResponse, RoomRequest, RoomResponse } from "@/types/room";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -9,7 +9,6 @@ import { useToast } from "@/components/ui/toast/ToastProvider";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { usePagedQuery } from "@/hooks/usePagedQuery";
 import { usePaginationState } from "@/hooks/usePaginationState";
-import { digitsOnly } from "@/lib/forms/transform";
 import DataTable from "@/components/ui/table/DataTable";
 import RowActions from "@/components/ui/table/RowActions";
 import TablePagination from "@/components/ui/table/TablePagination";
@@ -65,28 +64,23 @@ export default function RoomTable() {
     const canDeactivate = hasPermission("salas:eliminar");
 
     const [size, setSize] = useState(DEFAULT_PAGE_SIZE);
-    const [nameFilter, setNameFilter] = useState("");
-    const [locationFilter, setLocationFilter] = useState("");
-    const [numberFilter, setNumberFilter] = useState("");
+    // Un único buscador (nombre, número o ubicación), con debounce para no pedir en cada tecla
+    const [searchInput, setSearchInput] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
 
-    const name = useDebouncedValue(nameFilter.trim());
-    const location = useDebouncedValue(locationFilter.trim());
-    const number = useDebouncedValue(numberFilter);
+    const search = useDebouncedValue(searchInput.trim());
 
-    const [page, setPage] = usePaginationState([size, name, location, number, statusFilter].join("|"));
+    const [page, setPage] = usePaginationState([size, search, statusFilter].join("|"));
 
     const fetchRooms = useCallback(
         () =>
             roomService.getAll({
                 page,
                 size,
-                name,
-                location,
-                number: number ? Number(number) : undefined,
+                search,
                 status: statusFilter ? statusFilter === "true" : undefined,
             }),
-        [page, size, name, location, number, statusFilter],
+        [page, size, search, statusFilter],
     );
 
     const { rows, totalPages, totalElements, loading, error, reload } = usePagedQuery(fetchRooms, {
@@ -97,15 +91,6 @@ export default function RoomTable() {
     const [editingRoom, setEditingRoom] = useState<RoomDetailResponse | null>(null);
     const [openingId, setOpeningId] = useState<number | null>(null);
     const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-
-    const hasFilters = Boolean(nameFilter || locationFilter || numberFilter || statusFilter);
-
-    const clearFilters = () => {
-        setNameFilter("");
-        setLocationFilter("");
-        setNumberFilter("");
-        setStatusFilter("");
-    };
 
     const handleOpenCreate = () => {
         setEditingRoom(null);
@@ -182,32 +167,16 @@ export default function RoomTable() {
             />
 
             <FilterPanel>
-                <TextField
-                    label="Nombre"
-                    icon={<DoorOpen />}
-                    placeholder="Buscar por nombre..."
-                    value={nameFilter}
-                    onValueChange={setNameFilter}
-                    clearable
-                />
-                <TextField
-                    label="Ubicación"
-                    icon={<MapPin />}
-                    placeholder="Buscar por ubicación..."
-                    value={locationFilter}
-                    onValueChange={setLocationFilter}
-                    clearable
-                />
-                <TextField
-                    label="Número"
-                    icon={<Hash />}
-                    placeholder="Ej. 101"
-                    inputMode="numeric"
-                    maxLength={9}
-                    value={numberFilter}
-                    onValueChange={(v) => setNumberFilter(digitsOnly(v))}
-                    clearable
-                />
+                <div className="sm:col-span-2">
+                    <TextField
+                        label="Buscar"
+                        icon={<Search />}
+                        placeholder="Nombre, número o ubicación..."
+                        value={searchInput}
+                        onValueChange={setSearchInput}
+                        clearable
+                    />
+                </div>
                 <Dropdown
                     label="Estado"
                     icon={<Power />}
@@ -217,18 +186,8 @@ export default function RoomTable() {
                     placeholder="Todas"
                     clearable
                 />
+                <PageSizeSelect value={size} onChange={setSize} />
             </FilterPanel>
-
-            <div className="flex flex-wrap items-end justify-between gap-4">
-                <div className="w-full sm:w-56">
-                    <PageSizeSelect value={size} onChange={setSize} />
-                </div>
-                {hasFilters && (
-                    <Button type="button" variant="ghost" onClick={clearFilters}>
-                        Limpiar filtros
-                    </Button>
-                )}
-            </div>
 
             <DataTable<RoomResponse>
                 columns={COLUMNS}

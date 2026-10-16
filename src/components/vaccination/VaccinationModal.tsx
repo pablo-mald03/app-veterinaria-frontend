@@ -23,7 +23,7 @@ export default function VaccinationModal({ open, mascota, records, onClose, onSa
             open={open}
             onClose={onClose}
             size="lg"
-            title="Registrar vacuna"
+            title="Registrar tratamiento"
             subtitle={`${mascota.name} · ${mascota.especie}`}
         >
             <VaccinationForm

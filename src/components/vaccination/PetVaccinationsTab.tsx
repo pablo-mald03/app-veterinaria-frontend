@@ -46,12 +46,12 @@ export default function PetVaccinationsTab({ mascota, records, loading, error, o
             }
 
             await createPetVaccination(Number(mascota.id), input, doctorId);
-            toast.success("Vacuna registrada", mascota.name);
+            toast.success("Tratamiento registrada", mascota.name);
             setFormOpen(false);
             onReload();
         } catch (err) {
-            const message = err instanceof Error ? err.message : "No se pudo registrar la vacuna.";
-            toast.error(message, "Error al registrar vacuna");
+            const message = err instanceof Error ? err.message : "No se pudo registrar el tratamiento.";
+            toast.error(message, "Error al registrar tratamiento");
             throw err;
         }
     };
@@ -77,7 +77,7 @@ export default function PetVaccinationsTab({ mascota, records, loading, error, o
     return (
         <div>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-sm font-bold text-text">Carnet de vacunación</h3>
+                <h3 className="text-sm font-bold text-text">Carnet de tratamientos</h3>
 
                 <div className="flex flex-wrap items-center justify-end gap-2">
                     <Button
@@ -96,7 +96,7 @@ export default function PetVaccinationsTab({ mascota, records, loading, error, o
                             icon={<Plus className="h-4 w-4" />}
                             onClick={() => setFormOpen(true)}
                         >
-                            Registrar vacuna
+                            Registrar tratamiento
                         </Button>
                     </Can>
                 </div>
@@ -122,9 +122,9 @@ export default function PetVaccinationsTab({ mascota, records, loading, error, o
             ) : rows.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-secondary py-10 text-center">
                     <Syringe className="h-6 w-6 text-accent" aria-hidden="true" />
-                    <p className="text-sm font-medium text-text">Aún no hay vacunas registradas</p>
+                    <p className="text-sm font-medium text-text">Aún no hay tratamientos registradas</p>
                     <p className="text-xs text-text/60">
-                        Cuando se registre una vacuna para esta mascota, va a aparecer acá.
+                        Cuando se registre un tratamiento para esta mascota, va a aparecer acá.
                     </p>
                 </div>
             ) : (

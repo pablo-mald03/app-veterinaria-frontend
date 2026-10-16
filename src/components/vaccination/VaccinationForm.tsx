@@ -91,7 +91,7 @@ export default function VaccinationForm({
                 value: String(item.idVaccine),
                 label: item.name,
                 hint: inactive
-                    ? "Vacuna inactiva"
+                    ? "Tratamiento inactivo"
                     : !compatible
                         ? `No aplica para ${mascota.especie}`
                         : complete
@@ -136,7 +136,7 @@ export default function VaccinationForm({
             setSubmitting(true);
             await onSubmit(input);
         } catch (err) {
-            setGeneralError(err instanceof Error ? err.message : "No se pudo registrar la vacuna.");
+            setGeneralError(err instanceof Error ? err.message : "No se pudo registrar el tratamiento.");
         } finally {
             setSubmitting(false);
         }
@@ -161,18 +161,18 @@ export default function VaccinationForm({
             )}
 
             <Dropdown
-                label="Vacuna"
+                label="Tratamientos"
                 icon={<Syringe />}
                 options={vaccineOptions}
                 value={vaccineId.value}
                 onValueChange={vaccineId.setValue}
                 onBlur={vaccineId.props.onBlur}
                 error={vaccineId.error}
-                placeholder="Selecciona la vacuna aplicada"
+                placeholder="Selecciona el tratamiento aplicado"
                 searchable
-                searchPlaceholder="Buscar vacuna..."
-                noResultsMessage="No se encontraron vacunas con esa búsqueda."
-                emptyMessage="No hay vacunas en el catálogo."
+                searchPlaceholder="Buscar tratamiento..."
+                noResultsMessage="No se encontraron tratamientos con esa búsqueda."
+                emptyMessage="No hay tratamientos en el catálogo."
                 loading={loadingCatalog}
                 disabled={Boolean(catalogError)}
             />
@@ -232,7 +232,7 @@ export default function VaccinationForm({
                     loadingLabel="Guardando..."
                     disabled={!isFormValid || submitting || loadingCatalog}
                 >
-                    Registrar vacuna
+                    Registrar tratamiento
                 </Button>
             </div>
         </form>

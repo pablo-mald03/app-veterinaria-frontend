@@ -2,7 +2,7 @@ import { ENDPOINTS } from "@/config/api";
 import { apiFetch } from "@/lib/api/apiFetch";
 import { ensureOk } from "@/lib/api/ensureOk";
 import { JSON_HEADERS } from "@/lib/api/http";
-import type { Payment, PaymentItemRequest } from "@/types/payment";
+import type { Payment, PaymentItemRequest, SupplyLine } from "@/types/payment";
 
 export const paymentService = {
     getByAppointment: async (appointmentId: number): Promise<Payment> => {
@@ -25,6 +25,25 @@ export const paymentService = {
         });
         await ensureOk(response, "Error al agregar el cargo.");
         return response.json();
+    },
+
+    // Returns the appointment account, opening it first if it does not exist yet
+    ensureOpen: async (appointmentId: number): Promise<Payment> => {
+        try {
+            return await paymentService.getByAppointment(appointmentId);
+        } catch {
+            return paymentService.open(appointmentId);
+        }
+    },
+
+    // Charges the supplies to the appointment account
+    addSupplies: async (appointmentId: number, supplies: SupplyLine[]): Promise<Payment> => {
+        let payment = await paymentService.ensureOpen(appointmentId);
+
+        for (const { productId, ...line } of supplies) {
+            payment = await paymentService.addItem(appointmentId, { ...line, referenceType: "SUPPLY", referenceId: productId });
+        }
+        return payment;
     },
 
     process: async (paymentId: number, paymentMethod: string): Promise<Payment> => {

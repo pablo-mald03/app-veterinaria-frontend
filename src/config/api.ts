@@ -58,6 +58,16 @@ export const ENDPOINTS = {
     STATUS: (id: number) => `${API_BASE_URL}/category/${id}/status`,
   },
 
+  PRODUCTS: {
+    LIST: (params: URLSearchParams) => `${API_BASE_URL}/products?${params}`,
+    CREATE: `${API_BASE_URL}/products`,
+    DETAIL: (id: number) => `${API_BASE_URL}/products/${id}`,
+    UPDATE: (id: number) => `${API_BASE_URL}/products/${id}`,
+    STATUS: (id: number) => `${API_BASE_URL}/products/${id}/status`,
+    VACCINES: (params: URLSearchParams) => `${API_BASE_URL}/products/vaccines?${params}`,
+    DEWORMERS: (params: URLSearchParams) => `${API_BASE_URL}/products/dewormers?${params}`,
+  },
+
   PAYMENTS: {
     BY_APPOINTMENT: (appointmentId: number) => `${API_BASE_URL}/payments/appointment/${appointmentId}`,
     OPEN: (appointmentId: number) => `${API_BASE_URL}/payments/appointment/${appointmentId}`,

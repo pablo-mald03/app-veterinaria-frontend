@@ -34,3 +34,32 @@ export interface PaymentItemRequest {
     referenceType: "CONSULTATION" | "VACCINE" | "TREATMENT" | "SUPPLY" | string;
     referenceId?: number;
 }
+
+export type PaymentMethod = "CASH" | "CREDIT_CARD" | "TRANSFER";
+
+export type DetailedPaymentMethod = Exclude<PaymentMethod, "CASH">;
+
+export interface CardPaymentData {
+    holder: string;
+    number: string;
+    expiry: string;
+    cvv: string;
+}
+
+export interface TransferPaymentData {
+    bank: string;
+    accountHolder: string;
+    reference: string;
+}
+
+export type PaymentDetails =
+    | { method: "CREDIT_CARD"; data: CardPaymentData }
+    | { method: "TRANSFER"; data: TransferPaymentData };
+
+export interface ChargeReceipt {
+    transactionId: string;
+    method: DetailedPaymentMethod;
+    amount: number;
+    approvedAt: string;
+    summary: string;
+}

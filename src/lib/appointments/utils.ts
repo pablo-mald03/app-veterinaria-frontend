@@ -76,7 +76,16 @@ export function validateSchedule({ date, hour, petId, appointments, ignoreId, sk
     }
 }
 
-//yyyy-MM-dd → dd/MM/yyyy (without Date, to avoid timezone shifts)
+export const AFTER_HOURS_START = "20:00";
+export const AFTER_HOURS_END = "08:00";
+export const AFTER_HOURS_SURCHARGE = 100;
+
+export function isAfterHours(hour: string): boolean {
+    const time = (hour ?? "").slice(0, 5);
+    if (!/^\d{2}:\d{2}$/.test(time)) return false;
+    return time >= AFTER_HOURS_START || time < AFTER_HOURS_END;
+}
+
 export function formatDate(date: string): string {
     const [y, m, d] = (date ?? "").split("-");
     return y && m && d ? `${d}/${m}/${y}` : date || "—";

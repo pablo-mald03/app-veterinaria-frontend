@@ -129,6 +129,13 @@ export default function SalesView() {
                         <TextField label="IVA (%)" type="number" min="0" max="100" step="0.01" value={iva} onValueChange={setIva} placeholder="12" required message="Obligatorio para calcular el total." />
                     </div>
                     {productsError && <Alert variant="error">{productsError}</Alert>}
+                    <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-text/80">
+                        <p className="font-semibold text-text">Cómo se calcula esta venta</p>
+                        <p className="mt-1">
+                            El cliente paga el precio de venta configurado para el producto. El sistema aplica UEPS internamente
+                            para descontar los lotes más recientes, pero los costos de esos lotes no cambian el precio cobrado.
+                        </p>
+                    </div>
                     <div className="space-y-3">
                         <h2 className="text-sm font-bold uppercase tracking-wide text-text">Productos de la venta</h2>
                         {items.map((item, index) => (
@@ -142,7 +149,7 @@ export default function SalesView() {
                                     )}
                                 </div>
                                 <TextField label="Cantidad" type="number" min="1" value={String(item.quantity)} onValueChange={(value) => updateItem(index, { quantity: Number(value) || 0 })} required />
-                                <TextField label="Precio unitario" type="number" value={String(item.unitPrice)} onValueChange={() => undefined} readOnly message="Precio configurado en el producto" required />
+                                <TextField label="Precio de venta al cliente" type="number" value={String(item.unitPrice)} onValueChange={() => undefined} readOnly message="Tomado del precio configurado en el producto" required />
                                 <Button type="button" variant="ghost" className="self-end justify-self-start lg:justify-self-end" disabled={items.length === 1} icon={<Trash2 className="h-4 w-4" />} onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Quitar</Button>
                             </div>
                         ))}
@@ -154,7 +161,7 @@ export default function SalesView() {
                             <span className="text-xs text-text/60">Precio de venta configurado</span>
                         </div>
                         <div className="ml-auto max-w-sm space-y-2 text-sm">
-                            <div className="flex justify-between gap-4 text-text/70"><span>Subtotal</span><strong className="text-text">{money(subtotal)}</strong></div>
+                            <div className="flex justify-between gap-4 text-text/70"><span>Subtotal a cobrar</span><strong className="text-text">{money(subtotal)}</strong></div>
                             <div className="flex justify-between gap-4 text-text/70"><span>IVA ({ivaPercentage.toFixed(2)}%)</span><strong className="text-text">{money(ivaAmount)}</strong></div>
                             <div className="flex justify-between gap-4 border-t border-primary/20 pt-3 text-base"><span className="font-bold text-text">Total a pagar</span><strong className="text-lg text-primary">{money(totalToPay)}</strong></div>
                         </div>

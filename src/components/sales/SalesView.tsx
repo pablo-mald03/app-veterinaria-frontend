@@ -18,6 +18,7 @@ import { inventoryService } from "@/services/inventoryService";
 import { productService } from "@/services/productService";
 import type { ProductResponse } from "@/types/product";
 import type { Sale, SaleItemRequest } from "@/types/sale";
+import type { ProductStockSummary } from "@/types/inventory";
 
 const emptyItem = (): SaleItemRequest => ({ productId: 0, quantity: 1, unitPrice: 0 });
 const money = (value: number | null | undefined) => typeof value === "number" ? `$${value.toFixed(2)}` : "—";
@@ -35,15 +36,24 @@ export default function SalesView() {
     const [iva, setIva] = useState("0");
     const [items, setItems] = useState<SaleItemRequest[]>([emptyItem()]);
     const [products, setProducts] = useState<ProductResponse[]>([]);
+    const [stockByProduct, setStockByProduct] = useState<Record<number, number>>({});
     const [productsError, setProductsError] = useState<string | null>(null);
     const fetchSales = useCallback(() => inventoryService.getSales(page, size), [page, size]);
     const query = usePagedQuery(fetchSales, { errorTitle: "Ventas" });
 
     useEffect(() => {
         if (!modalOpen) return;
-        productService.getAll({ page: 0, size: 100, sortBy: "name", direction: "asc" })
-            .then((result) => setProducts(result.content.filter((product) => product.status)))
-            .catch((error: unknown) => setProductsError(error instanceof Error ? error.message : "No se pudieron cargar los productos."));
+        Promise.all([
+            productService.getAll({ page: 0, size: 100, sortBy: "name", direction: "asc" }),
+            inventoryService.getStockSummary(0, 100),
+        ])
+            .then(([productResult, stockResult]) => {
+                setProducts(productResult.content.filter((product) => product.status));
+                setStockByProduct(
+                    Object.fromEntries(stockResult.content.map((summary: ProductStockSummary) => [summary.productId, summary.totalAvailableStock])),
+                );
+            })
+            .catch((error: unknown) => setProductsError(error instanceof Error ? error.message : "No se pudieron cargar los productos y sus existencias."));
     }, [modalOpen]);
 
     const options: DropdownOption[] = products.map((product) => ({ value: String(product.id), label: `${product.name} (${product.sku})` }));
@@ -58,6 +68,7 @@ export default function SalesView() {
         const product = products.find((item) => item.id === Number(productId));
         updateItem(index, { productId: Number(productId), unitPrice: product?.price ?? 0 });
     };
+    const selectedProduct = (productId: number) => products.find((product) => product.id === productId);
     const closeModal = () => {
         setModalOpen(false);
         setItems([emptyItem()]);
@@ -117,7 +128,14 @@ export default function SalesView() {
                         <h2 className="text-sm font-bold uppercase tracking-wide text-text">Productos de la venta</h2>
                         {items.map((item, index) => (
                             <div key={index} className="grid gap-4 rounded-2xl border border-secondary p-4 sm:grid-cols-2 lg:grid-cols-[minmax(16rem,2fr)_minmax(7rem,1fr)_minmax(9rem,1fr)_auto]">
-                                <Dropdown label="Producto" options={options} value={item.productId ? String(item.productId) : ""} onValueChange={(value) => selectProduct(index, value)} placeholder="Selecciona un producto" searchable />
+                                <div className="min-w-0">
+                                    <Dropdown label="Producto" options={options} value={item.productId ? String(item.productId) : ""} onValueChange={(value) => selectProduct(index, value)} placeholder="Selecciona un producto" searchable />
+                                    {item.productId > 0 && (
+                                        <p className={`mt-1.5 text-xs font-semibold ${stockByProduct[item.productId] > 0 ? "text-success" : "text-danger"}`}>
+                                            Existencia disponible: {stockByProduct[item.productId] ?? 0} unidades
+                                        </p>
+                                    )}
+                                </div>
                                 <TextField label="Cantidad" type="number" min="1" value={String(item.quantity)} onValueChange={(value) => updateItem(index, { quantity: Number(value) || 0 })} required />
                                 <TextField label="Precio unitario" type="number" value={String(item.unitPrice)} onValueChange={() => undefined} readOnly message="Precio configurado en el producto" required />
                                 <Button type="button" variant="ghost" className="self-end justify-self-start lg:justify-self-end" disabled={items.length === 1} icon={<Trash2 className="h-4 w-4" />} onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Quitar</Button>

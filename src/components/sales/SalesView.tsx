@@ -38,6 +38,8 @@ export default function SalesView() {
     const [products, setProducts] = useState<ProductResponse[]>([]);
     const [stockByProduct, setStockByProduct] = useState<Record<number, number>>({});
     const [productsError, setProductsError] = useState<string | null>(null);
+    const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+    const [detailsLoading, setDetailsLoading] = useState(false);
     const fetchSales = useCallback(() => inventoryService.getSales(page, size), [page, size]);
     const query = usePagedQuery(fetchSales, { errorTitle: "Ventas" });
 
@@ -99,6 +101,16 @@ export default function SalesView() {
             setSaving(false);
         }
     };
+    const viewDetails = async (sale: Sale) => {
+        setDetailsLoading(true);
+        try {
+            setSelectedSale(await inventoryService.getSaleById(sale.id));
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "No se pudo cargar el detalle de la venta.", "Error");
+        } finally {
+            setDetailsLoading(false);
+        }
+    };
 
     return (
         <section className="space-y-5 bg-white p-8">
@@ -117,6 +129,10 @@ export default function SalesView() {
                 ]}
                 rows={query.rows} getRowKey={(row) => row.id} loading={query.loading} error={query.error}
                 loadingLabel="Cargando ventas..." emptyState={{ icon: <ReceiptText />, title: "No hay ventas", description: "Registra la primera venta." }}
+                actions={{
+                    header: "Acciones",
+                    render: (row) => <Button variant="ghost" className="px-3" loading={detailsLoading} onClick={() => void viewDetails(row)}>Ver detalles</Button>,
+                }}
             />
             <div className="flex flex-col gap-4 border-t border-mint pt-4 sm:flex-row sm:items-end sm:justify-between">
                 <PageSizeSelect value={size} onChange={(next) => { setSize(next); setPage(0); }} />
@@ -168,6 +184,42 @@ export default function SalesView() {
                     </div>
                     <div className="flex justify-end gap-3"><Button type="button" variant="ghost" onClick={closeModal}>Cancelar</Button><Button type="submit" loading={saving}>Registrar venta</Button></div>
                 </form>
+            </Modal>
+            <Modal open={selectedSale !== null} onClose={() => setSelectedSale(null)} size="4xl" title={`Detalle de venta #${selectedSale?.id ?? ""}`} subtitle="Información completa de la venta registrada.">
+                {selectedSale && (
+                    <div className="space-y-5">
+                        <div className="grid gap-4 rounded-2xl border border-mint bg-mint/20 p-4 sm:grid-cols-4">
+                            <div><p className="text-xs font-bold uppercase text-text/60">Factura</p><p className="font-semibold">{selectedSale.billNumber || "Sin factura"}</p></div>
+                            <div><p className="text-xs font-bold uppercase text-text/60">Fecha</p><p className="font-semibold">{dateLabel(selectedSale.date)}</p></div>
+                            <div><p className="text-xs font-bold uppercase text-text/60">Estado</p><p className="font-semibold">{selectedSale.status}</p></div>
+                            <div><p className="text-xs font-bold uppercase text-text/60">Usuario</p><p className="font-semibold">{selectedSale.user?.userRegistry ?? selectedSale.user?.email ?? "—"}</p></div>
+                        </div>
+                        <div>
+                            <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-text">Productos vendidos</h2>
+                            <div className="overflow-x-auto rounded-2xl border border-secondary">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-mint text-xs uppercase text-text/70"><tr><th className="px-4 py-3">Producto</th><th className="px-4 py-3">SKU</th><th className="px-4 py-3 text-right">Cantidad</th><th className="px-4 py-3 text-right">Precio</th><th className="px-4 py-3 text-right">Subtotal</th></tr></thead>
+                                    <tbody className="divide-y divide-mint">
+                                        {selectedSale.details?.map((detail) => (
+                                            <tr key={detail.id}>
+                                                <td className="px-4 py-3 font-semibold">{detail.product.name}</td>
+                                                <td className="px-4 py-3">{detail.product.sku || "—"}</td>
+                                                <td className="px-4 py-3 text-right">{detail.quantity}</td>
+                                                <td className="px-4 py-3 text-right">{money(detail.unitPrice)}</td>
+                                                <td className="px-4 py-3 text-right">{money(detail.subtotal)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div className="ml-auto max-w-sm space-y-2 rounded-2xl border border-primary/20 bg-mint/20 p-4 text-sm">
+                            <div className="flex justify-between"><span>Subtotal</span><strong>{money(selectedSale.subtotal)}</strong></div>
+                            <div className="flex justify-between"><span>IVA</span><strong>{money(selectedSale.iva)}</strong></div>
+                            <div className="flex justify-between border-t border-primary/20 pt-3 text-base"><span className="font-bold">Total a pagar</span><strong className="text-primary">{money(selectedSale.total)}</strong></div>
+                        </div>
+                    </div>
+                )}
             </Modal>
         </section>
     );

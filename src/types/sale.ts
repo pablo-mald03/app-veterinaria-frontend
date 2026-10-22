@@ -14,6 +14,7 @@ export interface Sale {
     iva: number;
     total: number;
     status: string;
+    user: { id: number; userRegistry: string; email: string } | null;
     details: SaleDetail[];
 }
 

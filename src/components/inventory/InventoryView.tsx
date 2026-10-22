@@ -14,6 +14,8 @@ import ProductTable from "@/components/products/ProductTable";
 import { useToast } from "@/components/ui/toast/ToastProvider";
 import { categoryService } from "@/services/categoryService";
 import type { Category, CategoryRequest } from "@/types/category";
+import { BatchList, LowStockAlerts, MovementHistory, StockSummary } from "@/components/inventory/InventoryPanels";
+import PurchasePanel from "@/components/inventory/PurchasePanel";
 
 const STATUS_OPTIONS: DropdownOption[] = [
     { value: "", label: "Todas" },
@@ -21,11 +23,15 @@ const STATUS_OPTIONS: DropdownOption[] = [
     { value: "false", label: "Inactivas" },
 ];
 
-type InventoryTab = "products" | "categories";
+type InventoryTab = "products" | "categories" | "purchases" | "stock" | "batches" | "movements";
 
 const TABS: { value: InventoryTab; label: string }[] = [
     { value: "products", label: "Productos" },
     { value: "categories", label: "Categorías" },
+    { value: "purchases", label: "Compras" },
+    { value: "stock", label: "Existencias" },
+    { value: "batches", label: "Lotes" },
+    { value: "movements", label: "Movimientos" },
 ];
 
 const EMPTY_FORM: CategoryRequest = { name: "", description: "" };
@@ -121,12 +127,23 @@ export default function InventoryView() {
                 action={tab === "categories" && canCreate ? <Button icon={<Plus className="h-5 w-5" />} onClick={openCreate}>Nueva categoría</Button> : undefined}
             />
 
-            <div className="w-full sm:w-72">
-                <SegmentedTabs tabs={TABS} active={tab} onChange={setTab} />
+            <div className="w-full overflow-x-auto">
+                <SegmentedTabs className="w-max min-w-full sm:min-w-0" tabs={TABS} active={tab} onChange={setTab} />
             </div>
 
             {tab === "products" ? (
                 <ProductTable />
+            ) : tab === "purchases" ? (
+                <PurchasePanel />
+            ) : tab === "stock" ? (
+                <>
+                    <LowStockAlerts />
+                    <StockSummary />
+                </>
+            ) : tab === "batches" ? (
+                <BatchList />
+            ) : tab === "movements" ? (
+                <MovementHistory />
             ) : (
                 <>
                     <div className="grid gap-4 md:grid-cols-2">

@@ -16,3 +16,11 @@ export function requiredRoleFor(pathname: string): string | null {
 
     return match?.adminOnly ? "ADMIN" : null;
 }
+
+export function allowedRolesFor(pathname: string): string[] | null {
+    const match = NAV_ITEMS
+        .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
+        .sort((a, b) => b.href.length - a.href.length)[0];
+
+    return match?.allowedRoles ?? null;
+}

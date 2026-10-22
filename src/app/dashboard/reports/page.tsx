@@ -167,12 +167,12 @@ export default function ReportsPage() {
                 >
                     <div className="max-h-64 overflow-auto">
                         {pendingVaccines.map((row) => (
-                            <div key={`${row.petId}-${row.vaccineName}-${row.nextDoseDate}`} className="border-b border-mint py-2 text-sm last:border-0">
-                                <div className="font-semibold text-text">{row.petName} · {row.vaccineName}</div>
-                                <p className="text-xs text-text/60">Próxima dosis: {formatDate(row.nextDoseDate)}</p>
+                            <div key={`${row.idPet}-${row.treatmentName}-${row.applicationNumber}-${row.nextDoseDate}`} className="border-b border-mint py-2 text-sm last:border-0">
+                                <div className="font-semibold text-text">{row.petName} · {row.treatmentName}</div>
+                                <p className="text-xs text-text/60">Próxima aplicación: {formatDate(row.nextDoseDate)}</p>
                             </div>
                         ))}
-                        {!pendingVaccines.length && <p className="py-4 text-sm text-text/60">Sin vacunas pendientes.</p>}
+                        {!pendingVaccines.length && <p className="py-4 text-sm text-text/60">Sin tratamientos pendientes.</p>}
                     </div>
                 </ReportCard>
             </section>

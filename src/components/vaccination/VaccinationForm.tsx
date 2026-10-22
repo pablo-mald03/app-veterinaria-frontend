@@ -1,36 +1,36 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarCheck, CalendarClock, CircleCheck, FileText, RefreshCw, Syringe, Tag } from "lucide-react";
+import { CalendarCheck, CalendarClock, CircleCheck, FileText, RefreshCw, Syringe } from "lucide-react";
 import Alert from "@/components/ui/common/Alert";
 import Button from "@/components/ui/common/Button";
 import Dropdown, { type DropdownOption } from "@/components/ui/common/Dropdown";
 import TextArea from "@/components/ui/common/TextArea";
 import TextField from "@/components/ui/common/TextField";
 import { useField } from "@/hooks/useField";
+import { formatCost } from "@/lib/consultation/money";
 import { formatDate, parseIsoDate, toIsoDate } from "@/lib/vaccination/dates";
 import {
-    countDoses,
+    countApplications,
     estimateNextDoseDate,
-    findLastDoseDate,
-    nextDoseNumber,
+    findLastApplicationDate,
+    nextApplicationNumber,
 } from "@/lib/vaccination/records";
-import { isVaccineForSpecies } from "@/lib/vaccination/species";
+import { isTreatmentForSpecies } from "@/lib/vaccination/species";
 import {
     vaccinationDateValidator,
-    vaccinationLotSchema,
     vaccinationNotesSchema,
-    vaccinationVaccineValidator,
+    vaccinationTreatmentValidator,
 } from "@/schemas/vaccination.schema";
 import type { Mascota } from "@/types/pet";
 import type { VaccinationInput, VaccinationView } from "@/types/vaccination";
-import type { VaccineResponse } from "@/types/vaccination-api";
+import type { TreatmentResponse } from "@/types/vaccination-api";
 
 interface VaccinationFormProps {
     mascota: Mascota;
-    /** Carnet actual de la mascota (para saber la dosis que toca y si el esquema ya está completo). */
+    /** Carnet actual de la mascota (para saber qué aplicación toca y cuándo fue la última). */
     records: VaccinationView[];
-    catalog: VaccineResponse[];
+    catalog: TreatmentResponse[];
     loadingCatalog: boolean;
     catalogError: string | null;
     onRetryCatalog: () => void;
@@ -38,66 +38,62 @@ interface VaccinationFormProps {
     onCancel: () => void;
 }
 
-//Formulario para registrar una vacuna aplicada a una mascota
+//Formulario para registrar un tratamiento aplicado a una mascota
 export default function VaccinationForm({
-    mascota,
-    records,
-    catalog,
-    loadingCatalog,
-    catalogError,
-    onRetryCatalog,
-    onSubmit,
-    onCancel,
-}: VaccinationFormProps) {
+                                            mascota,
+                                            records,
+                                            catalog,
+                                            loadingCatalog,
+                                            catalogError,
+                                            onRetryCatalog,
+                                            onSubmit,
+                                            onCancel,
+                                        }: VaccinationFormProps) {
     const today = toIsoDate(new Date());
 
     const [submitting, setSubmitting] = useState(false);
     const [generalError, setGeneralError] = useState<string | null>(null);
 
-    // ---- Vacuna ----
-    const vaccineId = useField({
-        validator: vaccinationVaccineValidator({ catalog, petSpecies: mascota.especie, records }),
+    // ---- Tratamiento ----
+    const treatmentId = useField({
+        validator: vaccinationTreatmentValidator({ catalog, petSpecies: mascota.especie }),
         validateOn: "blur",
     });
 
-    const selectedVaccine = catalog.find((item) => String(item.idVaccine) === vaccineId.value);
+    const selectedTreatment = catalog.find((item) => String(item.idTreatment) === treatmentId.value);
 
-    // La dosis la calcula el backend (dosis registradas + 1); aquí solo se adelanta para informar.
-    const doseToRegister = selectedVaccine ? nextDoseNumber(records, selectedVaccine.idVaccine) : null;
+    // El número lo calcula el backend (aplicaciones registradas + 1); aquí solo se adelanta para informar.
+    const applicationToRegister = selectedTreatment ? nextApplicationNumber(records, selectedTreatment.idTreatment) : null;
 
     // ---- Fecha de aplicación ----
     const appliedAt = useField({
         initialValue: today,
         validator: vaccinationDateValidator({
             petAgeYears: mascota.age,
-            previousDoseDate: selectedVaccine ? findLastDoseDate(records, selectedVaccine.idVaccine) : null,
+            previousDoseDate: selectedTreatment ? findLastApplicationDate(records, selectedTreatment.idTreatment) : null,
         }),
         validateOn: "blur",
     });
 
-    // ---- Datos opcionales ----
-    const lot = useField({ validator: vaccinationLotSchema, validateOn: "blur" });
+    // ---- Dato opcional ----
     const notes = useField({ validator: vaccinationNotesSchema, validateOn: "blur" });
 
     // ---- Opciones del selector: las que no se pueden usar quedan deshabilitadas con el motivo ----
-    const vaccineOptions: DropdownOption[] = useMemo(() => {
+    const treatmentOptions: DropdownOption[] = useMemo(() => {
         const options = catalog.map((item) => {
             const inactive = !item.status;
-            const compatible = isVaccineForSpecies(item.species, mascota.especie);
-            const applied = countDoses(records, item.idVaccine);
-            const complete = applied >= item.dosesRequired;
+            const compatible = isTreatmentForSpecies(item.species, mascota.especie);
+            const applied = countApplications(records, item.idTreatment);
 
             return {
-                value: String(item.idVaccine),
+                value: String(item.idTreatment),
                 label: item.name,
                 hint: inactive
                     ? "Tratamiento inactivo"
                     : !compatible
                         ? `No aplica para ${mascota.especie}`
-                        : complete
-                            ? `Esquema completo (${applied} de ${item.dosesRequired} dosis)`
-                            : `${item.species} · ${applied} de ${item.dosesRequired} dosis aplicadas`,
-                disabled: inactive || !compatible || complete,
+                        : `${item.species.join(", ")} · ${applied === 0 ? "Sin aplicaciones previas" : `${applied} ${applied === 1 ? "aplicación previa" : "aplicaciones previas"}`}`,
+                disabled: inactive || !compatible,
             };
         });
 
@@ -108,27 +104,20 @@ export default function VaccinationForm({
     // ---- Resumen de lo que ocurrirá al guardar ----
     const dateIsValid = appliedAt.valid && parseIsoDate(appliedAt.value) !== null;
     const estimatedNextDose =
-        selectedVaccine && doseToRegister !== null && dateIsValid
-            ? estimateNextDoseDate(selectedVaccine, doseToRegister, appliedAt.value)
-            : null;
-    const completesScheme =
-        selectedVaccine && doseToRegister !== null && vaccineId.valid
-            ? doseToRegister >= selectedVaccine.dosesRequired
-            : false;
+        selectedTreatment && dateIsValid ? estimateNextDoseDate(selectedTreatment, appliedAt.value) : null;
 
-    const isFormValid = vaccineId.valid && appliedAt.valid && lot.valid && notes.valid;
+    const isFormValid = treatmentId.valid && appliedAt.valid && notes.valid;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setGeneralError(null);
 
-        const results = [vaccineId.validate(), appliedAt.validate(), lot.validate(), notes.validate()];
+        const results = [treatmentId.validate(), appliedAt.validate(), notes.validate()];
         if (!results.every(Boolean)) return;
 
         const input: VaccinationInput = {
-            idVaccine: Number(vaccineId.value),
+            idTreatment: Number(treatmentId.value),
             appliedAt: appliedAt.value,
-            lot: lot.value.trim() || undefined,
             notes: notes.value.trim() || undefined,
         };
 
@@ -163,11 +152,11 @@ export default function VaccinationForm({
             <Dropdown
                 label="Tratamientos"
                 icon={<Syringe />}
-                options={vaccineOptions}
-                value={vaccineId.value}
-                onValueChange={vaccineId.setValue}
-                onBlur={vaccineId.props.onBlur}
-                error={vaccineId.error}
+                options={treatmentOptions}
+                value={treatmentId.value}
+                onValueChange={treatmentId.setValue}
+                onBlur={treatmentId.props.onBlur}
+                error={treatmentId.error}
                 placeholder="Selecciona el tratamiento aplicado"
                 searchable
                 searchPlaceholder="Buscar tratamiento..."
@@ -185,13 +174,6 @@ export default function VaccinationForm({
                 {...appliedAt.props}
             />
 
-            <TextField
-                label="Lote (opcional)"
-                icon={<Tag />}
-                placeholder="Ej. RAB-2026-01"
-                {...lot.props}
-            />
-
             <TextArea
                 label="Observaciones (opcional)"
                 icon={<FileText />}
@@ -200,23 +182,25 @@ export default function VaccinationForm({
                 {...notes.props}
             />
 
-            {selectedVaccine && doseToRegister !== null && vaccineId.valid && (
+            {selectedTreatment && applicationToRegister !== null && treatmentId.valid && (
                 <div className="flex items-start gap-3 rounded-xl bg-mint/50 p-4 text-sm text-text">
-                    {completesScheme
-                        ? <CircleCheck className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden="true" />
-                        : <CalendarClock className="mt-0.5 h-5 w-5 shrink-0 text-accent" aria-hidden="true" />}
+                    {estimatedNextDose
+                        ? <CalendarClock className="mt-0.5 h-5 w-5 shrink-0 text-accent" aria-hidden="true" />
+                        : <CircleCheck className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden="true" />}
                     <div>
-                        <p className="font-semibold">
-                            Se registrará la dosis {doseToRegister} de {selectedVaccine.dosesRequired}
-                        </p>
+                        <p className="font-semibold">Se registrará la aplicación {applicationToRegister}</p>
                         {estimatedNextDose ? (
                             <p className="text-xs text-text/70">
-                                Próxima dosis estimada: {formatDate(estimatedNextDose)}. La fecha final la calcula el
+                                Próxima aplicación estimada: {formatDate(estimatedNextDose)}. La fecha final la calcula el
                                 sistema al guardar.
                             </p>
                         ) : (
-                            <p className="text-xs text-text/70">Con esta dosis se completa el esquema de la vacuna.</p>
+                            <p className="text-xs text-text/70">Este tratamiento es de aplicación única: no genera próxima fecha.</p>
                         )}
+                        <p className="mt-1 text-xs text-text/70">
+                            Costo estimado: {formatCost(selectedTreatment.estimatedCost)}. Los productos del tratamiento
+                            se descuentan del inventario al guardar.
+                        </p>
                     </div>
                 </div>
             )}

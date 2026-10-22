@@ -5,25 +5,17 @@ import {
     startOfToday,
     subtractYears,
 } from "@/lib/vaccination/dates";
-import { countDoses } from "@/lib/vaccination/records";
-import { isVaccineForSpecies } from "@/lib/vaccination/species";
-import type { VaccinationView } from "@/types/vaccination";
-import type { VaccineResponse } from "@/types/vaccination-api";
+import { isTreatmentForSpecies } from "@/lib/vaccination/species";
+import type { TreatmentResponse } from "@/types/vaccination-api";
 
-// Validaciones del formulario "Registrar vacuna".
+// Validaciones del formulario "Registrar tratamiento".
 //
 // Se hacen en el frontend por si el backend todavía no las tiene; cuando las agregue,
 // estas siguen sirviendo como validación temprana (el backend siempre manda).
 // Los campos simples usan zod (como pet.schema.ts); los que dependen de otros campos
-// (catálogo, carnet, edad de la mascota) son funciones que devuelven el mensaje de error.
+// (catálogo, edad de la mascota) son funciones que devuelven el mensaje de error.
 
 // ---- Campos simples ----
-
-export const vaccinationLotSchema = z
-    .string()
-    .trim()
-    .max(50, "Máximo 50 caracteres.")
-    .regex(/^[A-Za-z0-9\-_/. ]*$/, "El lote solo admite letras, números y los símbolos - _ / .");
 
 export const vaccinationNotesSchema = z
     .string()
@@ -32,31 +24,21 @@ export const vaccinationNotesSchema = z
 
 // ---- Campos que dependen de otros datos ----
 
-interface VaccineContext {
-    catalog: VaccineResponse[];
+interface TreatmentContext {
+    catalog: TreatmentResponse[];
     petSpecies: string;
-    /** Carnet actual: sirve para saber si el esquema de esa vacuna ya está completo. */
-    records: VaccinationView[];
 }
 
-/**
- * La vacuna debe existir en el catálogo, estar activa, aplicar a la especie de la mascota
- * y no tener ya todas sus dosis registradas (el backend rechaza una dosis de más).
- */
-export function vaccinationVaccineValidator({ catalog, petSpecies, records }: VaccineContext) {
+/** El tratamiento debe existir en el catálogo, estar activo y aplicar a la especie de la mascota. */
+export function vaccinationTreatmentValidator({ catalog, petSpecies }: TreatmentContext) {
     return (value: string): string | undefined => {
-        if (!value) return "Selecciona la vacuna aplicada.";
+        if (!value) return "Selecciona el tratamiento aplicado.";
 
-        const vaccine = catalog.find((item) => String(item.idVaccine) === value);
-        if (!vaccine) return "La vacuna seleccionada no existe en el catálogo.";
-        if (!vaccine.status) return "Esta vacuna está inactiva en el catálogo.";
-        if (!isVaccineForSpecies(vaccine.species, petSpecies)) {
-            return `Esta vacuna no aplica para la especie ${petSpecies}.`;
-        }
-
-        const applied = countDoses(records, vaccine.idVaccine);
-        if (applied >= vaccine.dosesRequired) {
-            return `Esquema completo: ya se aplicaron las ${vaccine.dosesRequired} dosis de ${vaccine.name}.`;
+        const treatment = catalog.find((item) => String(item.idTreatment) === value);
+        if (!treatment) return "El tratamiento seleccionado no existe en el catálogo.";
+        if (!treatment.status) return "Este tratamiento está inactivo en el catálogo.";
+        if (!isTreatmentForSpecies(treatment.species, petSpecies)) {
+            return `Este tratamiento no aplica para la especie ${petSpecies}.`;
         }
 
         return undefined;
@@ -66,11 +48,11 @@ export function vaccinationVaccineValidator({ catalog, petSpecies, records }: Va
 interface DateContext {
     /** Edad de la mascota en años (la fecha no puede ser anterior a su nacimiento estimado). */
     petAgeYears: number;
-    /** Fecha de la última dosis de la misma vacuna; la nueva debe ser posterior. */
+    /** Fecha de la última aplicación del mismo tratamiento; la nueva debe ser posterior. */
     previousDoseDate: string | null;
 }
 
-/** Fecha real, no futura, posterior al nacimiento estimado y a la dosis anterior. */
+/** Fecha real, no futura, posterior al nacimiento estimado y a la aplicación anterior. */
 export function vaccinationDateValidator({ petAgeYears, previousDoseDate }: DateContext) {
     return (value: string): string | undefined => {
         if (!value) return "La fecha de aplicación es obligatoria.";
@@ -90,7 +72,7 @@ export function vaccinationDateValidator({ petAgeYears, previousDoseDate }: Date
         if (previousDoseDate) {
             const previous = parseIsoDate(previousDoseDate.slice(0, 10));
             if (previous && date.getTime() <= previous.getTime()) {
-                return `Debe ser posterior a la dosis anterior (${formatDate(previousDoseDate)}).`;
+                return `Debe ser posterior a la aplicación anterior (${formatDate(previousDoseDate)}).`;
             }
         }
 

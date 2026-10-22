@@ -35,6 +35,11 @@ export const inventoryService = {
             "purchases",
             "No se pudieron cargar las compras.",
         ),
+    getPurchaseById: async (id: number): Promise<Purchase> => {
+        const response = await apiFetch(ENDPOINTS.PURCHASES.DETAIL(id));
+        await ensureOk(response, "No se pudo cargar el detalle de la compra.");
+        return response.json() as Promise<Purchase>;
+    },
     createPurchase: async (data: PurchaseRequest): Promise<Purchase> => {
         const response = await apiFetch(ENDPOINTS.PURCHASES.CREATE, {
             method: "POST",

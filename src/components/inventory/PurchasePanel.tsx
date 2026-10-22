@@ -36,8 +36,28 @@ export default function PurchasePanel() {
     const [details, setDetails] = useState<PurchaseDetailRequest[]>([emptyDetail()]);
     const [products, setProducts] = useState<ProductResponse[]>([]);
     const [productsError, setProductsError] = useState<string | null>(null);
+    const [detailCounts, setDetailCounts] = useState<Record<number, number>>({});
     const fetchPurchases = useCallback(() => inventoryService.getPurchases(page, size), [page, size]);
     const query = usePagedQuery(fetchPurchases, { errorTitle: "Compras" });
+
+    useEffect(() => {
+        if (query.loading || query.rows.length === 0) return;
+        let active = true;
+        Promise.all(query.rows.map(async (purchase) => {
+            if (purchase.details?.length) return [purchase.id, purchase.details.length] as const;
+            const detail = await inventoryService.getPurchaseById(purchase.id);
+            return [purchase.id, detail.details?.length ?? 0] as const;
+        }))
+            .then((counts) => {
+                if (active) setDetailCounts(Object.fromEntries(counts));
+            })
+            .catch(() => {
+                if (active) setDetailCounts({});
+            });
+        return () => {
+            active = false;
+        };
+    }, [query.loading, query.rows]);
 
     useEffect(() => {
         if (!modalOpen) return;
@@ -87,7 +107,7 @@ export default function PurchasePanel() {
                     { key: "id", header: "Compra", render: (row) => `#${row.id}` },
                     { key: "description", header: "Descripción", render: (row) => row.description || "Sin descripción" },
                     { key: "date", header: "Fecha", render: (row) => dateLabel(row.date) },
-                    { key: "details", header: "Productos", align: "right", render: (row) => row.details?.length ?? 0 },
+                    { key: "details", header: "Productos", align: "right", render: (row) => detailCounts[row.id] ?? (row.details?.length || "—") },
                     { key: "total", header: "Total", align: "right", render: (row) => money(row.total) },
                     { key: "status", header: "Estado", render: (row) => row.status },
                 ]}

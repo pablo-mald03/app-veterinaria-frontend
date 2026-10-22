@@ -15,6 +15,7 @@ import { useToast } from "@/components/ui/toast/ToastProvider";
 import { categoryService } from "@/services/categoryService";
 import type { Category, CategoryRequest } from "@/types/category";
 import { BatchList, LowStockAlerts, MovementHistory, StockSummary } from "@/components/inventory/InventoryPanels";
+import PurchasePanel from "@/components/inventory/PurchasePanel";
 
 const STATUS_OPTIONS: DropdownOption[] = [
     { value: "", label: "Todas" },
@@ -22,11 +23,12 @@ const STATUS_OPTIONS: DropdownOption[] = [
     { value: "false", label: "Inactivas" },
 ];
 
-type InventoryTab = "products" | "categories" | "stock" | "batches" | "movements";
+type InventoryTab = "products" | "categories" | "purchases" | "stock" | "batches" | "movements";
 
 const TABS: { value: InventoryTab; label: string }[] = [
     { value: "products", label: "Productos" },
     { value: "categories", label: "Categorías" },
+    { value: "purchases", label: "Compras" },
     { value: "stock", label: "Existencias" },
     { value: "batches", label: "Lotes" },
     { value: "movements", label: "Movimientos" },
@@ -131,6 +133,8 @@ export default function InventoryView() {
 
             {tab === "products" ? (
                 <ProductTable />
+            ) : tab === "purchases" ? (
+                <PurchasePanel />
             ) : tab === "stock" ? (
                 <>
                     <LowStockAlerts />

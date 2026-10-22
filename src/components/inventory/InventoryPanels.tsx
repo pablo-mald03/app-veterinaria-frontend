@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, PackageSearch, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Alert from "@/components/ui/common/Alert";
 import StatusBadge from "@/components/ui/common/StatusBadge";
 import DataTable from "@/components/ui/table/DataTable";
@@ -34,7 +34,8 @@ function Pager({ page, size, totalPages, totalElements, onPageChange, onSizeChan
 export function StockSummary() {
     const [page, setPage] = usePaginationState("stock");
     const [size, setSize] = useStateWithReset(20, () => setPage(0));
-    const query = usePagedQuery(() => inventoryService.getStockSummary(page, size), { errorTitle: "Existencias" });
+    const fetchStockSummary = useCallback(() => inventoryService.getStockSummary(page, size), [page, size]);
+    const query = usePagedQuery(fetchStockSummary, { errorTitle: "Existencias" });
     return (
         <section className="space-y-4">
             <div>
@@ -60,7 +61,8 @@ export function StockSummary() {
 export function LowStockAlerts() {
     const [page, setPage] = usePaginationState("low");
     const [size, setSize] = useStateWithReset(20, () => setPage(0));
-    const query = usePagedQuery(() => inventoryService.getLowStock(page, size), { errorTitle: "Stock bajo" });
+    const fetchLowStock = useCallback(() => inventoryService.getLowStock(page, size), [page, size]);
+    const query = usePagedQuery(fetchLowStock, { errorTitle: "Stock bajo" });
     if (!query.loading && !query.error && query.rows.length === 0) return null;
     return (
         <section className="space-y-3">
@@ -80,7 +82,8 @@ export function LowStockAlerts() {
 export function BatchList() {
     const [page, setPage] = usePaginationState("batches");
     const [size, setSize] = useStateWithReset(20, () => setPage(0));
-    const query = usePagedQuery(() => inventoryService.getBatches(page, size), { errorTitle: "Lotes" });
+    const fetchBatches = useCallback(() => inventoryService.getBatches(page, size), [page, size]);
+    const query = usePagedQuery(fetchBatches, { errorTitle: "Lotes" });
     return (
         <section className="space-y-4">
             <div><h2 className="text-xl font-bold text-text">Lotes de inventario</h2><p className="text-sm text-text/60">Consulta cantidades, fechas y estado de cada lote.</p></div>
@@ -103,7 +106,8 @@ export function BatchList() {
 export function MovementHistory() {
     const [page, setPage] = usePaginationState("movements");
     const [size, setSize] = useStateWithReset(20, () => setPage(0));
-    const query = usePagedQuery(() => inventoryService.getMovements(page, size), { errorTitle: "Movimientos" });
+    const fetchMovements = useCallback(() => inventoryService.getMovements(page, size), [page, size]);
+    const query = usePagedQuery(fetchMovements, { errorTitle: "Movimientos" });
     return (
         <section className="space-y-4">
             <div><h2 className="text-xl font-bold text-text">Historial de movimientos</h2><p className="text-sm text-text/60">Entradas y salidas registradas en inventario.</p></div>

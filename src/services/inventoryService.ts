@@ -31,7 +31,7 @@ const pageParams = (page: number, size: number) => buildQuery({ page, size });
 export const inventoryService = {
     getPurchases: (page = 0, size = 20) =>
         getPage<Purchase>(
-            ENDPOINTS.PURCHASES.LIST(pageParams(page, size)),
+            ENDPOINTS.PURCHASES.LIST(buildQuery({ page, size, withDetails: true })),
             "purchases",
             "No se pudieron cargar las compras.",
         ),

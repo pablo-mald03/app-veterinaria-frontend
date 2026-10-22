@@ -47,6 +47,10 @@ export default function SalesView() {
     }, [modalOpen]);
 
     const options: DropdownOption[] = products.map((product) => ({ value: String(product.id), label: `${product.name} (${product.sku})` }));
+    const subtotal = items.reduce((total, item) => total + item.quantity * item.unitPrice, 0);
+    const ivaPercentage = Math.max(0, Number(iva) || 0);
+    const ivaAmount = subtotal * (ivaPercentage / 100);
+    const totalToPay = subtotal + ivaAmount;
     const updateItem = (index: number, patch: Partial<SaleItemRequest>) => {
         setItems((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
     };
@@ -121,6 +125,17 @@ export default function SalesView() {
                         ))}
                     </div>
                     <Button type="button" variant="ghost" icon={<Plus className="h-4 w-4" />} onClick={() => setItems((current) => [...current, emptyItem()])}>Agregar producto</Button>
+                    <div className="rounded-2xl border border-primary/30 bg-mint/30 p-5">
+                        <div className="mb-3 flex items-center justify-between">
+                            <h2 className="font-bold text-text">Resumen de pago</h2>
+                            <span className="text-xs text-text/60">Precio de venta configurado</span>
+                        </div>
+                        <div className="ml-auto max-w-sm space-y-2 text-sm">
+                            <div className="flex justify-between gap-4 text-text/70"><span>Subtotal</span><strong className="text-text">{money(subtotal)}</strong></div>
+                            <div className="flex justify-between gap-4 text-text/70"><span>IVA ({ivaPercentage.toFixed(2)}%)</span><strong className="text-text">{money(ivaAmount)}</strong></div>
+                            <div className="flex justify-between gap-4 border-t border-primary/20 pt-3 text-base"><span className="font-bold text-text">Total a pagar</span><strong className="text-lg text-primary">{money(totalToPay)}</strong></div>
+                        </div>
+                    </div>
                     <div className="flex justify-end gap-3"><Button type="button" variant="ghost" onClick={closeModal}>Cancelar</Button><Button type="submit" loading={saving}>Registrar venta</Button></div>
                 </form>
             </Modal>

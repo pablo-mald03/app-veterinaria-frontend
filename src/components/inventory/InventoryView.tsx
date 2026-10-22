@@ -125,8 +125,8 @@ export default function InventoryView() {
                 action={tab === "categories" && canCreate ? <Button icon={<Plus className="h-5 w-5" />} onClick={openCreate}>Nueva categoría</Button> : undefined}
             />
 
-            <div className="w-full sm:w-72">
-                <SegmentedTabs tabs={TABS} active={tab} onChange={setTab} />
+            <div className="w-full overflow-x-auto">
+                <SegmentedTabs className="w-max min-w-full sm:min-w-0" tabs={TABS} active={tab} onChange={setTab} />
             </div>
 
             {tab === "products" ? (

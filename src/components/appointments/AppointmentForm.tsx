@@ -15,7 +15,7 @@ import {
     appointmentTreatmentSchema,
     appointmentUserSchema,
 } from "@/schemas/appointment.schema";
-import { DEFAULT_STATUS, STATUS_OPTIONS, todayLocal, validateDateNotPast, validateSchedule } from "@/lib/appointments/utils";
+import { DEFAULT_STATUS, isAfterHours, STATUS_OPTIONS, todayLocal, validateDateNotPast, validateSchedule } from "@/lib/appointments/utils";
 import type { AppointmentCatalogs } from "@/hooks/useAppointmentCatalogs";
 import type { AppointmentFormData, AppointmentResponse } from "@/types/appointment";
 import type { SupplyLine } from "@/types/payment";
@@ -25,6 +25,7 @@ import Dropdown from "@/components/ui/common/Dropdown";
 import Button from "@/components/ui/common/Button";
 import Alert from "@/components/ui/common/Alert";
 import AppointmentSupplies from "@/components/appointments/AppointmentSupplies";
+import AfterHoursNotice from "@/components/appointments/AfterHoursNotice";
 
 interface AppointmentFormProps {
     editingAppointment: AppointmentResponse | null;
@@ -58,6 +59,7 @@ export default function AppointmentForm({ editingAppointment, appointments, fixe
     const [submitting, setSubmitting] = useState(false);
     const [generalError, setGeneralError] = useState<string | null>(null);
     const [supplies, setSupplies] = useState<SupplyLine[]>([]);
+    const [awaitingConfirm, setAwaitingConfirm] = useState(false);
 
     const keepsDate = (d: string) => isEditing && d === initial.date;
     const keepsSchedule = (d: string, h: string) => keepsDate(d) && h === initial.hour;
@@ -93,12 +95,25 @@ export default function AppointmentForm({ editingAppointment, appointments, fixe
     const fields = [petId, userId, roomId, date, hour, description, ...(isEditing ? [diagnosis, treatment, cost] : [])];
     const isFormValid = fields.every((f) => f.valid);
 
+    const needsSurcharge = !isEditing && isAfterHours(hour.value);
+    const showNotice = awaitingConfirm && needsSurcharge;
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setGeneralError(null);
 
         const results = fields.map((f) => f.validate());
         if (!results.every(Boolean)) return;
+
+        if (needsSurcharge) {
+            setAwaitingConfirm(true);
+            return;
+        }
+        await saveAppointment();
+    };
+
+    const saveAppointment = async () => {
+        setGeneralError(null);
 
         const formattedHour = hour.value.length === 5
             ? `${hour.value}:00`
@@ -109,7 +124,8 @@ export default function AppointmentForm({ editingAppointment, appointments, fixe
             userId: Number(userId.value),
             roomId: Number(roomId.value),
             date: date.value,
-            hour: formattedHour, // <- usar la variable formateada
+            //hour: formattedHour, // <- usar la variable formateada
+            hour: hour.value,
             description: description.value.trim(),
             status: status.value,
             diagnosis: diagnosis.value.trim(),
@@ -123,6 +139,7 @@ export default function AppointmentForm({ editingAppointment, appointments, fixe
             await onSubmit(payload);
         } catch (err) {
             setGeneralError(err instanceof Error ? err.message : "No se pudo guardar la cita.");
+            setAwaitingConfirm(false);
         } finally {
             setSubmitting(false);
         }
@@ -214,20 +231,29 @@ export default function AppointmentForm({ editingAppointment, appointments, fixe
                 </div>
             )}
 
-            <div className="mt-4 flex justify-end gap-3 border-t border-mint pt-4">
-                <Button type="button" variant="ghost" onClick={onCancel} disabled={submitting}>
-                    Cancelar
-                </Button>
-                <Button
-                    type="submit"
-                    variant="primary"
-                    loading={submitting}
-                    loadingLabel="Guardando..."
-                    disabled={!isFormValid || submitting}
-                >
-                    {isEditing ? "Actualizar" : "Agendar Cita"}
-                </Button>
-            </div>
+            {showNotice ? (
+                <AfterHoursNotice
+                    hour={hour.value}
+                    submitting={submitting}
+                    onConfirm={() => void saveAppointment()}
+                    onBack={() => setAwaitingConfirm(false)}
+                />
+            ) : (
+                <div className="mt-4 flex justify-end gap-3 border-t border-mint pt-4">
+                    <Button type="button" variant="ghost" onClick={onCancel} disabled={submitting}>
+                        Cancelar
+                    </Button>
+                    <Button
+                        type="submit"
+                        variant="primary"
+                        loading={submitting}
+                        loadingLabel="Guardando..."
+                        disabled={!isFormValid || submitting}
+                    >
+                        {isEditing ? "Actualizar" : "Agendar Cita"}
+                    </Button>
+                </div>
+            )}
         </form>
     );
 }

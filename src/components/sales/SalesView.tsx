@@ -50,6 +50,10 @@ export default function SalesView() {
     const updateItem = (index: number, patch: Partial<SaleItemRequest>) => {
         setItems((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
     };
+    const selectProduct = (index: number, productId: string) => {
+        const product = products.find((item) => item.id === Number(productId));
+        updateItem(index, { productId: Number(productId), unitPrice: product?.price ?? 0 });
+    };
     const closeModal = () => {
         setModalOpen(false);
         setItems([emptyItem()]);
@@ -109,9 +113,9 @@ export default function SalesView() {
                         <h2 className="text-sm font-bold uppercase tracking-wide text-text">Productos de la venta</h2>
                         {items.map((item, index) => (
                             <div key={index} className="grid gap-4 rounded-2xl border border-secondary p-4 sm:grid-cols-2 lg:grid-cols-[minmax(16rem,2fr)_minmax(7rem,1fr)_minmax(9rem,1fr)_auto]">
-                                <Dropdown label="Producto" options={options} value={item.productId ? String(item.productId) : ""} onValueChange={(value) => updateItem(index, { productId: Number(value) })} placeholder="Selecciona un producto" searchable />
+                                <Dropdown label="Producto" options={options} value={item.productId ? String(item.productId) : ""} onValueChange={(value) => selectProduct(index, value)} placeholder="Selecciona un producto" searchable />
                                 <TextField label="Cantidad" type="number" min="1" value={String(item.quantity)} onValueChange={(value) => updateItem(index, { quantity: Number(value) || 0 })} required />
-                                <TextField label="Precio unitario" type="number" min="0" step="0.01" value={String(item.unitPrice)} onValueChange={(value) => updateItem(index, { unitPrice: Number(value) || 0 })} required />
+                                <TextField label="Precio unitario" type="number" value={String(item.unitPrice)} onValueChange={() => undefined} readOnly message="Precio configurado en el producto" required />
                                 <Button type="button" variant="ghost" className="self-end justify-self-start lg:justify-self-end" disabled={items.length === 1} icon={<Trash2 className="h-4 w-4" />} onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Quitar</Button>
                             </div>
                         ))}

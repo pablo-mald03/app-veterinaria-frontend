@@ -33,7 +33,7 @@ export default function SalesView() {
     const [modalOpen, setModalOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const [billNumber, setBillNumber] = useState("");
-    const [iva, setIva] = useState("0");
+    const [iva, setIva] = useState("12");
     const [items, setItems] = useState<SaleItemRequest[]>([emptyItem()]);
     const [products, setProducts] = useState<ProductResponse[]>([]);
     const [stockByProduct, setStockByProduct] = useState<Record<number, number>>({});
@@ -73,18 +73,23 @@ export default function SalesView() {
         setModalOpen(false);
         setItems([emptyItem()]);
         setBillNumber("");
-        setIva("0");
+        setIva("12");
         setProductsError(null);
     };
     const saveSale = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        const ivaValue = Number(iva);
+        if (!iva.trim() || !Number.isFinite(ivaValue) || ivaValue < 0 || ivaValue > 100) {
+            toast.error("El IVA es obligatorio y debe ser un porcentaje válido.", "Datos incompletos");
+            return;
+        }
         if (items.some((item) => item.productId === 0 || item.quantity < 1 || item.unitPrice < 0)) {
             toast.error("Completa producto, cantidad y precio en cada detalle.", "Datos incompletos");
             return;
         }
         setSaving(true);
         try {
-            await inventoryService.createSale({ billNumber, iva: Number(iva) || 0, items });
+            await inventoryService.createSale({ billNumber, iva: ivaValue, items });
             toast.success("La venta fue registrada y el inventario fue actualizado.", "Venta registrada");
             closeModal();
             query.reload();
@@ -121,7 +126,7 @@ export default function SalesView() {
                 <form onSubmit={saveSale} className="space-y-5">
                     <div className="grid gap-4 rounded-2xl border border-mint bg-mint/20 p-4 sm:grid-cols-[minmax(0,1fr)_13rem]">
                         <TextField label="Número de factura" value={billNumber} onValueChange={setBillNumber} placeholder="Factura opcional" maxLength={30} />
-                        <TextField label="IVA" type="number" min="0" step="0.01" value={iva} onValueChange={setIva} placeholder="0" />
+                        <TextField label="IVA (%)" type="number" min="0" max="100" step="0.01" value={iva} onValueChange={setIva} placeholder="12" required message="Obligatorio para calcular el total." />
                     </div>
                     {productsError && <Alert variant="error">{productsError}</Alert>}
                     <div className="space-y-3">

@@ -20,8 +20,8 @@ import type { ProductResponse } from "@/types/product";
 import type { Purchase, PurchaseDetailRequest } from "@/types/purchase";
 
 const emptyDetail = (): PurchaseDetailRequest => ({ productId: 0, quantity: 1, unitPrice: 0, profitPercentage: 0 });
-const dateLabel = (value: string) => new Date(value).toLocaleDateString("es-MX");
-const money = (value: number) => `$${value.toFixed(2)}`;
+const dateLabel = (value: string | null | undefined) => value ? new Date(value).toLocaleDateString("es-MX") : "—";
+const money = (value: number | null | undefined) => typeof value === "number" ? `$${value.toFixed(2)}` : "—";
 
 export default function PurchasePanel() {
     const { hasPermission, hasRole } = useAuth();
@@ -87,7 +87,7 @@ export default function PurchasePanel() {
                     { key: "id", header: "Compra", render: (row) => `#${row.id}` },
                     { key: "description", header: "Descripción", render: (row) => row.description || "Sin descripción" },
                     { key: "date", header: "Fecha", render: (row) => dateLabel(row.date) },
-                    { key: "details", header: "Productos", align: "right", render: (row) => row.details.length },
+                    { key: "details", header: "Productos", align: "right", render: (row) => row.details?.length ?? 0 },
                     { key: "total", header: "Total", align: "right", render: (row) => money(row.total) },
                     { key: "status", header: "Estado", render: (row) => row.status },
                 ]}
@@ -98,22 +98,25 @@ export default function PurchasePanel() {
                 <PageSizeSelect value={size} onChange={(next) => { setSize(next); setPage(0); }} />
                 <TablePagination page={page} size={size} totalPages={query.totalPages} totalElements={query.totalElements} onPageChange={setPage} />
             </div>
-            <Modal open={modalOpen} onClose={closeModal} size="2xl" title="Nueva compra" subtitle="La compra generará automáticamente un lote y un movimiento de entrada.">
+            <Modal open={modalOpen} onClose={closeModal} size="4xl" title="Nueva compra" subtitle="La compra generará automáticamente un lote y un movimiento de entrada.">
                 <form onSubmit={savePurchase} className="space-y-5">
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid gap-4 rounded-2xl border border-mint bg-mint/20 p-4 sm:grid-cols-[minmax(0,1fr)_13rem]">
                         <TextField label="Descripción" value={description} onValueChange={setDescription} placeholder="Compra de productos" maxLength={255} />
                         <TextField label="IVA" type="number" min="0" step="0.01" value={iva} onValueChange={setIva} placeholder="0" />
                     </div>
                     {productsError && <Alert variant="error">{productsError}</Alert>}
-                    {details.map((detail, index) => (
-                        <div key={index} className="grid gap-3 rounded-2xl border border-secondary p-4 sm:grid-cols-2 lg:grid-cols-5">
-                            <Dropdown label="Producto" options={productOptions} value={detail.productId ? String(detail.productId) : ""} onValueChange={(value) => updateDetail(index, { productId: Number(value) })} placeholder="Selecciona" searchable />
-                            <TextField label="Cantidad" type="number" min="1" value={String(detail.quantity)} onValueChange={(value) => updateDetail(index, { quantity: Number(value) || 0 })} required />
-                            <TextField label="Precio unitario" type="number" min="0.01" step="0.01" value={String(detail.unitPrice)} onValueChange={(value) => updateDetail(index, { unitPrice: Number(value) || 0 })} required />
-                            <TextField label="% ganancia" type="number" min="0" max="100" value={String(detail.profitPercentage)} onValueChange={(value) => updateDetail(index, { profitPercentage: Number(value) || 0 })} required />
-                            <Button type="button" variant="ghost" className="self-end" disabled={details.length === 1} icon={<Trash2 className="h-4 w-4" />} onClick={() => setDetails((current) => current.filter((_, detailIndex) => detailIndex !== index))}>Quitar</Button>
-                        </div>
-                    ))}
+                    <div className="space-y-3">
+                        <h3 className="text-sm font-bold uppercase tracking-wide text-text">Productos de la compra</h3>
+                        {details.map((detail, index) => (
+                            <div key={index} className="grid gap-4 rounded-2xl border border-secondary bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-[minmax(16rem,2fr)_minmax(7rem,1fr)_minmax(9rem,1fr)_minmax(8rem,1fr)_auto]">
+                                <Dropdown label="Producto" options={productOptions} value={detail.productId ? String(detail.productId) : ""} onValueChange={(value) => updateDetail(index, { productId: Number(value) })} placeholder="Selecciona un producto" searchable />
+                                <TextField label="Cantidad" type="number" min="1" value={String(detail.quantity)} onValueChange={(value) => updateDetail(index, { quantity: Number(value) || 0 })} required />
+                                <TextField label="Precio unitario" type="number" min="0.01" step="0.01" value={String(detail.unitPrice)} onValueChange={(value) => updateDetail(index, { unitPrice: Number(value) || 0 })} required />
+                                <TextField label="% ganancia" type="number" min="0" max="100" value={String(detail.profitPercentage)} onValueChange={(value) => updateDetail(index, { profitPercentage: Number(value) || 0 })} required />
+                                <Button type="button" variant="ghost" className="self-end justify-self-start lg:justify-self-end" disabled={details.length === 1} icon={<Trash2 className="h-4 w-4" />} onClick={() => setDetails((current) => current.filter((_, detailIndex) => detailIndex !== index))}>Quitar</Button>
+                            </div>
+                        ))}
+                    </div>
                     <Button type="button" variant="ghost" icon={<Plus className="h-4 w-4" />} onClick={() => setDetails((current) => [...current, emptyDetail()])}>Agregar producto</Button>
                     <div className="flex justify-end gap-3"><Button type="button" variant="ghost" onClick={closeModal}>Cancelar</Button><Button type="submit" loading={saving}>Registrar compra</Button></div>
                 </form>

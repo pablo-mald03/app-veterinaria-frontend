@@ -3,9 +3,9 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
 
-type ModalSize = "sm" | "md" | "lg" | "2xl";
+type ModalSize = "sm" | "md" | "lg" | "2xl" | "4xl";
 
-const SIZES: Record<ModalSize, string> = { sm: "max-w-sm", md: "max-w-md", lg: "max-w-lg", "2xl": "max-w-2xl" };
+const SIZES: Record<ModalSize, string> = { sm: "max-w-sm", md: "max-w-md", lg: "max-w-lg", "2xl": "max-w-2xl", "4xl": "max-w-4xl" };
 
 //Modal props
 interface ModalProps {
@@ -47,7 +47,7 @@ export default function Modal({ open, onClose, size = "md", title, subtitle, ari
             }}
             className="fixed inset-0 z-50 flex overflow-y-auto bg-text/40 p-4 backdrop-blur-sm"
         >
-            <div role="dialog" aria-modal="true" aria-label={ariaLabel ?? title} className={`m-auto w-full ${SIZES[size]} rounded-3xl border border-secondary bg-white p-6 shadow-2xl motion-safe:animate-modal-in`}>
+            <div role="dialog" aria-modal="true" aria-label={ariaLabel ?? title} className={`m-auto max-h-[calc(100vh-2rem)] w-full overflow-y-auto ${SIZES[size]} rounded-3xl border border-secondary bg-white p-6 shadow-2xl motion-safe:animate-modal-in`}>
                 {title && (
                     <div className="mb-4 flex items-center justify-between border-b border-mint pb-4">
                         <div>

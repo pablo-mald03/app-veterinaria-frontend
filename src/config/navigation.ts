@@ -12,6 +12,7 @@ import {
     ScrollText,
     ShieldCheck,
     Users,
+    ReceiptText,
 } from "lucide-react";
 
 export interface NavItem {
@@ -20,6 +21,7 @@ export interface NavItem {
     icon: LucideIcon;
     permission: string | null;
     adminOnly?: boolean;
+    allowedRoles?: string[];
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -29,6 +31,7 @@ export const NAV_ITEMS: NavItem[] = [
     { name: "Habitaciones", href: "/dashboard/rooms", icon: BedDouble, permission: "salas:ver" },
     { name: "Agenda de Citas", href: "/dashboard/appointment", icon: CalendarDays, permission: "citas:ver" },
     { name: "Farmacia e Inventario", href: "/dashboard/inventory", icon: Pill, permission: "inventario:ver" },
+    { name: "Ventas", href: "/dashboard/sales", icon: ReceiptText, permission: null, allowedRoles: ["ADMIN", "RECEPCIONISTA"] },
     { name: "Catálogo de Tratamientos", href: "/dashboard/vaccines", icon: Syringe, permission: "vacunacion:ver" },
     { name: "Gestión de Documentos", href: "/documentos", icon: Folder, permission: "documentos:ver" },
     { name: "Recursos Humanos", href: "/dashboard/users", icon: Users, permission: "usuarios:ver" },

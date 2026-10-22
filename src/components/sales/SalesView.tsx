@@ -1,0 +1,125 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { Plus, ReceiptText, Trash2 } from "lucide-react";
+import Alert from "@/components/ui/common/Alert";
+import Button from "@/components/ui/common/Button";
+import Dropdown, { type DropdownOption } from "@/components/ui/common/Dropdown";
+import Modal from "@/components/ui/common/Modal";
+import TextField from "@/components/ui/common/TextField";
+import DataTable from "@/components/ui/table/DataTable";
+import PageSizeSelect from "@/components/ui/table/PageSizeSelect";
+import TablePagination from "@/components/ui/table/TablePagination";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { useToast } from "@/components/ui/toast/ToastProvider";
+import { usePagedQuery } from "@/hooks/usePagedQuery";
+import { usePaginationState } from "@/hooks/usePaginationState";
+import { inventoryService } from "@/services/inventoryService";
+import { productService } from "@/services/productService";
+import type { ProductResponse } from "@/types/product";
+import type { Sale, SaleItemRequest } from "@/types/sale";
+
+const emptyItem = (): SaleItemRequest => ({ productId: 0, quantity: 1, unitPrice: 0 });
+const money = (value: number | null | undefined) => typeof value === "number" ? `$${value.toFixed(2)}` : "—";
+const dateLabel = (value: string | null | undefined) => value ? new Date(value).toLocaleDateString("es-MX") : "—";
+
+export default function SalesView() {
+    const { hasRole } = useAuth();
+    const toast = useToast();
+    const canCreate = hasRole("ADMIN") || hasRole("RECEPCIONISTA");
+    const [page, setPage] = usePaginationState("sales");
+    const [size, setSize] = useState(20);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [billNumber, setBillNumber] = useState("");
+    const [iva, setIva] = useState("0");
+    const [items, setItems] = useState<SaleItemRequest[]>([emptyItem()]);
+    const [products, setProducts] = useState<ProductResponse[]>([]);
+    const [productsError, setProductsError] = useState<string | null>(null);
+    const fetchSales = useCallback(() => inventoryService.getSales(page, size), [page, size]);
+    const query = usePagedQuery(fetchSales, { errorTitle: "Ventas" });
+
+    useEffect(() => {
+        if (!modalOpen) return;
+        productService.getAll({ page: 0, size: 100, sortBy: "name", direction: "asc" })
+            .then((result) => setProducts(result.content.filter((product) => product.status)))
+            .catch((error: unknown) => setProductsError(error instanceof Error ? error.message : "No se pudieron cargar los productos."));
+    }, [modalOpen]);
+
+    const options: DropdownOption[] = products.map((product) => ({ value: String(product.id), label: `${product.name} (${product.sku})` }));
+    const updateItem = (index: number, patch: Partial<SaleItemRequest>) => {
+        setItems((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
+    };
+    const closeModal = () => {
+        setModalOpen(false);
+        setItems([emptyItem()]);
+        setBillNumber("");
+        setIva("0");
+        setProductsError(null);
+    };
+    const saveSale = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (items.some((item) => item.productId === 0 || item.quantity < 1 || item.unitPrice < 0)) {
+            toast.error("Completa producto, cantidad y precio en cada detalle.", "Datos incompletos");
+            return;
+        }
+        setSaving(true);
+        try {
+            await inventoryService.createSale({ billNumber, iva: Number(iva) || 0, items });
+            toast.success("La venta fue registrada y el inventario fue actualizado.", "Venta registrada");
+            closeModal();
+            query.reload();
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "No se pudo registrar la venta.", "Error");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <section className="space-y-5 bg-white p-8">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div><h1 className="text-2xl font-bold text-text">Ventas</h1><p className="text-sm text-text/60">Registra ventas y descuenta automáticamente el inventario.</p></div>
+                {canCreate && <Button icon={<Plus className="h-5 w-5" />} onClick={() => setModalOpen(true)}>Nueva venta</Button>}
+            </div>
+            <DataTable<Sale>
+                columns={[
+                    { key: "id", header: "Venta", render: (row) => `#${row.id}` },
+                    { key: "billNumber", header: "Factura", render: (row) => row.billNumber || "Sin factura" },
+                    { key: "date", header: "Fecha", render: (row) => dateLabel(row.date) },
+                    { key: "details", header: "Productos", align: "right", render: (row) => row.details?.length ?? 0 },
+                    { key: "total", header: "Total", align: "right", render: (row) => money(row.total) },
+                    { key: "status", header: "Estado", render: (row) => row.status },
+                ]}
+                rows={query.rows} getRowKey={(row) => row.id} loading={query.loading} error={query.error}
+                loadingLabel="Cargando ventas..." emptyState={{ icon: <ReceiptText />, title: "No hay ventas", description: "Registra la primera venta." }}
+            />
+            <div className="flex flex-col gap-4 border-t border-mint pt-4 sm:flex-row sm:items-end sm:justify-between">
+                <PageSizeSelect value={size} onChange={(next) => { setSize(next); setPage(0); }} />
+                <TablePagination page={page} size={size} totalPages={query.totalPages} totalElements={query.totalElements} onPageChange={setPage} />
+            </div>
+            <Modal open={modalOpen} onClose={closeModal} size="4xl" title="Nueva venta" subtitle="La venta descontará existencias y registrará movimientos de salida.">
+                <form onSubmit={saveSale} className="space-y-5">
+                    <div className="grid gap-4 rounded-2xl border border-mint bg-mint/20 p-4 sm:grid-cols-[minmax(0,1fr)_13rem]">
+                        <TextField label="Número de factura" value={billNumber} onValueChange={setBillNumber} placeholder="Factura opcional" maxLength={30} />
+                        <TextField label="IVA" type="number" min="0" step="0.01" value={iva} onValueChange={setIva} placeholder="0" />
+                    </div>
+                    {productsError && <Alert variant="error">{productsError}</Alert>}
+                    <div className="space-y-3">
+                        <h2 className="text-sm font-bold uppercase tracking-wide text-text">Productos de la venta</h2>
+                        {items.map((item, index) => (
+                            <div key={index} className="grid gap-4 rounded-2xl border border-secondary p-4 sm:grid-cols-2 lg:grid-cols-[minmax(16rem,2fr)_minmax(7rem,1fr)_minmax(9rem,1fr)_auto]">
+                                <Dropdown label="Producto" options={options} value={item.productId ? String(item.productId) : ""} onValueChange={(value) => updateItem(index, { productId: Number(value) })} placeholder="Selecciona un producto" searchable />
+                                <TextField label="Cantidad" type="number" min="1" value={String(item.quantity)} onValueChange={(value) => updateItem(index, { quantity: Number(value) || 0 })} required />
+                                <TextField label="Precio unitario" type="number" min="0" step="0.01" value={String(item.unitPrice)} onValueChange={(value) => updateItem(index, { unitPrice: Number(value) || 0 })} required />
+                                <Button type="button" variant="ghost" className="self-end justify-self-start lg:justify-self-end" disabled={items.length === 1} icon={<Trash2 className="h-4 w-4" />} onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Quitar</Button>
+                            </div>
+                        ))}
+                    </div>
+                    <Button type="button" variant="ghost" icon={<Plus className="h-4 w-4" />} onClick={() => setItems((current) => [...current, emptyItem()])}>Agregar producto</Button>
+                    <div className="flex justify-end gap-3"><Button type="button" variant="ghost" onClick={closeModal}>Cancelar</Button><Button type="submit" loading={saving}>Registrar venta</Button></div>
+                </form>
+            </Modal>
+        </section>
+    );
+}

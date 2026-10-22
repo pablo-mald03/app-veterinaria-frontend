@@ -82,6 +82,11 @@ export const ENDPOINTS = {
     DETAIL: (id: number) => `${API_BASE_URL}/purchases/${id}`,
     CREATE: `${API_BASE_URL}/purchases`,
   },
+  SALES: {
+    LIST: (params: URLSearchParams) => `${API_BASE_URL}/sales?${params}`,
+    DETAIL: (id: number) => `${API_BASE_URL}/sales/${id}`,
+    CREATE: `${API_BASE_URL}/sales`,
+  },
 
   PAYMENTS: {
     BY_APPOINTMENT: (appointmentId: number) => `${API_BASE_URL}/payments/appointment/${appointmentId}`,

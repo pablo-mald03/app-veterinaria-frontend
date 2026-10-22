@@ -5,6 +5,7 @@ import { ensureOk } from "@/lib/api/ensureOk";
 import type { Page } from "@/types/pagination";
 import type { InventoryBatch, InventoryMovement, LowStockProduct, ProductStockSummary } from "@/types/inventory";
 import type { Purchase, PurchaseRequest } from "@/types/purchase";
+import type { Sale, SaleRequest } from "@/types/sale";
 import { JSON_HEADERS } from "@/lib/api/http";
 
 type PagePayload<T> = Omit<Page<T>, "content"> & { content?: T[]; batches?: T[]; movements?: T[]; purchases?: T[] };
@@ -39,6 +40,26 @@ export const inventoryService = {
         const response = await apiFetch(ENDPOINTS.PURCHASES.DETAIL(id));
         await ensureOk(response, "No se pudo cargar el detalle de la compra.");
         return response.json() as Promise<Purchase>;
+    },
+    getSales: (page = 0, size = 20) =>
+        getPage<Sale>(
+            ENDPOINTS.SALES.LIST(buildQuery({ page, size, withDetails: true })),
+            "content",
+            "No se pudieron cargar las ventas.",
+        ),
+    getSaleById: async (id: number): Promise<Sale> => {
+        const response = await apiFetch(ENDPOINTS.SALES.DETAIL(id));
+        await ensureOk(response, "No se pudo cargar el detalle de la venta.");
+        return response.json() as Promise<Sale>;
+    },
+    createSale: async (data: SaleRequest): Promise<Sale> => {
+        const response = await apiFetch(ENDPOINTS.SALES.CREATE, {
+            method: "POST",
+            headers: JSON_HEADERS,
+            body: JSON.stringify(data),
+        });
+        await ensureOk(response, "No se pudo registrar la venta.");
+        return response.json() as Promise<Sale>;
     },
     createPurchase: async (data: PurchaseRequest): Promise<Purchase> => {
         const response = await apiFetch(ENDPOINTS.PURCHASES.CREATE, {

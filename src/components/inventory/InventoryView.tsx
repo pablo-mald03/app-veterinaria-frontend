@@ -14,6 +14,7 @@ import ProductTable from "@/components/products/ProductTable";
 import { useToast } from "@/components/ui/toast/ToastProvider";
 import { categoryService } from "@/services/categoryService";
 import type { Category, CategoryRequest } from "@/types/category";
+import { BatchList, LowStockAlerts, MovementHistory, StockSummary } from "@/components/inventory/InventoryPanels";
 
 const STATUS_OPTIONS: DropdownOption[] = [
     { value: "", label: "Todas" },
@@ -21,11 +22,14 @@ const STATUS_OPTIONS: DropdownOption[] = [
     { value: "false", label: "Inactivas" },
 ];
 
-type InventoryTab = "products" | "categories";
+type InventoryTab = "products" | "categories" | "stock" | "batches" | "movements";
 
 const TABS: { value: InventoryTab; label: string }[] = [
     { value: "products", label: "Productos" },
     { value: "categories", label: "Categorías" },
+    { value: "stock", label: "Existencias" },
+    { value: "batches", label: "Lotes" },
+    { value: "movements", label: "Movimientos" },
 ];
 
 const EMPTY_FORM: CategoryRequest = { name: "", description: "" };
@@ -127,6 +131,15 @@ export default function InventoryView() {
 
             {tab === "products" ? (
                 <ProductTable />
+            ) : tab === "stock" ? (
+                <>
+                    <LowStockAlerts />
+                    <StockSummary />
+                </>
+            ) : tab === "batches" ? (
+                <BatchList />
+            ) : tab === "movements" ? (
+                <MovementHistory />
             ) : (
                 <>
                     <div className="grid gap-4 md:grid-cols-2">

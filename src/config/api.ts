@@ -67,6 +67,16 @@ export const ENDPOINTS = {
     VACCINES: (params: URLSearchParams) => `${API_BASE_URL}/products/vaccines?${params}`,
     DEWORMERS: (params: URLSearchParams) => `${API_BASE_URL}/products/dewormers?${params}`,
   },
+  INVENTORY_BATCHES: {
+    LIST: (params: URLSearchParams) => `${API_BASE_URL}/inventory-batches?${params}`,
+    DETAIL: (id: number) => `${API_BASE_URL}/inventory-batches/${id}`,
+    STOCK_SUMMARY: (params: URLSearchParams) => `${API_BASE_URL}/inventory-batches/stock-summary?${params}`,
+    LOWER: (params: URLSearchParams) => `${API_BASE_URL}/inventory-batches/lower?${params}`,
+  },
+  INVENTORY_MOVEMENTS: {
+    LIST: (params: URLSearchParams) => `${API_BASE_URL}/inventory-movements?${params}`,
+    DETAIL: (id: number) => `${API_BASE_URL}/inventory-movements/${id}`,
+  },
 
   PAYMENTS: {
     BY_APPOINTMENT: (appointmentId: number) => `${API_BASE_URL}/payments/appointment/${appointmentId}`,

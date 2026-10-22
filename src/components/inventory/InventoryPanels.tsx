@@ -1,0 +1,135 @@
+"use client";
+
+import { AlertTriangle, PackageSearch, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import Alert from "@/components/ui/common/Alert";
+import StatusBadge from "@/components/ui/common/StatusBadge";
+import DataTable from "@/components/ui/table/DataTable";
+import PageSizeSelect from "@/components/ui/table/PageSizeSelect";
+import TablePagination from "@/components/ui/table/TablePagination";
+import { usePagedQuery } from "@/hooks/usePagedQuery";
+import { usePaginationState } from "@/hooks/usePaginationState";
+import { inventoryService } from "@/services/inventoryService";
+import type { InventoryBatch, InventoryMovement, LowStockProduct, ProductStockSummary } from "@/types/inventory";
+
+const formatDate = (value: string | undefined) => value ? new Date(value).toLocaleDateString("es-MX") : "—";
+const formatMoney = (value: number | undefined) => value === undefined ? "—" : `$${value.toFixed(2)}`;
+
+function Pager({ page, size, totalPages, totalElements, onPageChange, onSizeChange }: {
+    page: number;
+    size: number;
+    totalPages: number;
+    totalElements: number;
+    onPageChange: (page: number) => void;
+    onSizeChange: (size: number) => void;
+}) {
+    return (
+        <div className="flex flex-col gap-4 border-t border-mint p-5 sm:flex-row sm:items-end sm:justify-between">
+            <PageSizeSelect value={size} onChange={onSizeChange} />
+            <TablePagination page={page} size={size} totalPages={totalPages} totalElements={totalElements} onPageChange={onPageChange} />
+        </div>
+    );
+}
+
+export function StockSummary() {
+    const [page, setPage] = usePaginationState("stock");
+    const [size, setSize] = useStateWithReset(20, () => setPage(0));
+    const query = usePagedQuery(() => inventoryService.getStockSummary(page, size), { errorTitle: "Existencias" });
+    return (
+        <section className="space-y-4">
+            <div>
+                <h2 className="text-xl font-bold text-text">Existencias por producto</h2>
+                <p className="text-sm text-text/60">Consulta el stock disponible y el mínimo configurado.</p>
+            </div>
+            <DataTable<ProductStockSummary>
+                columns={[
+                    { key: "productName", header: "Producto", render: (row) => <span className="font-semibold">{row.productName}</span> },
+                    { key: "productSku", header: "SKU", render: (row) => row.productSku || "—" },
+                    { key: "totalAvailableStock", header: "Stock total", align: "right" },
+                    { key: "minimumStock", header: "Stock mínimo", align: "right" },
+                    { key: "status", header: "Estado", render: (row) => <StatusBadge active={row.totalAvailableStock > row.minimumStock} activeLabel="Disponible" inactiveLabel="Stock bajo" /> },
+                ]}
+                rows={query.rows} getRowKey={(row) => row.productId} loading={query.loading} error={query.error}
+                loadingLabel="Cargando existencias..." emptyState={{ icon: <PackageSearch />, title: "No hay existencias", description: "No existen productos con resumen de stock." }}
+            />
+            <Pager page={page} size={size} totalPages={query.totalPages} totalElements={query.totalElements} onPageChange={setPage} onSizeChange={setSize} />
+        </section>
+    );
+}
+
+export function LowStockAlerts() {
+    const [page, setPage] = usePaginationState("low");
+    const [size, setSize] = useStateWithReset(20, () => setPage(0));
+    const query = usePagedQuery(() => inventoryService.getLowStock(page, size), { errorTitle: "Stock bajo" });
+    if (!query.loading && !query.error && query.rows.length === 0) return null;
+    return (
+        <section className="space-y-3">
+            <h2 className="flex items-center gap-2 text-xl font-bold text-text"><AlertTriangle className="h-5 w-5 text-warning" /> Alertas de stock bajo</h2>
+            {query.error ? <Alert variant="error">{query.error}</Alert> : query.loading ? <p className="text-sm text-text/60">Cargando alertas...</p> : (
+                <>
+                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        {query.rows.map((row) => <Alert key={row.productId} variant="warning"><strong>{row.name}</strong> ({row.sku || "sin SKU"}): {row.currentStock} disponibles, mínimo {row.minimumStock}.</Alert>)}
+                    </div>
+                    <Pager page={page} size={size} totalPages={query.totalPages} totalElements={query.totalElements} onPageChange={setPage} onSizeChange={setSize} />
+                </>
+            )}
+        </section>
+    );
+}
+
+export function BatchList() {
+    const [page, setPage] = usePaginationState("batches");
+    const [size, setSize] = useStateWithReset(20, () => setPage(0));
+    const query = usePagedQuery(() => inventoryService.getBatches(page, size), { errorTitle: "Lotes" });
+    return (
+        <section className="space-y-4">
+            <div><h2 className="text-xl font-bold text-text">Lotes de inventario</h2><p className="text-sm text-text/60">Consulta cantidades, fechas y estado de cada lote.</p></div>
+            <DataTable<InventoryBatch>
+                columns={[
+                    { key: "product", header: "Producto", render: (row) => <><span className="font-semibold">{row.product.name}</span><span className="block text-xs text-text/60">{row.product.sku || "sin SKU"}</span></> },
+                    { key: "id", header: "Lote", render: (row) => `#${row.id}` },
+                    { key: "availableQuantity", header: "Disponible", align: "right" },
+                    { key: "entryDate", header: "Ingreso", render: (row) => formatDate(row.entryDate) },
+                    { key: "status", header: "Estado", render: (row) => <StatusBadge active={row.status} activeLabel="Activo" inactiveLabel="Inactivo" /> },
+                ]}
+                rows={query.rows} getRowKey={(row) => row.id} loading={query.loading} error={query.error}
+                loadingLabel="Cargando lotes..." emptyState={{ icon: <PackageSearch />, title: "No hay lotes", description: "No existen lotes de inventario registrados." }}
+            />
+            <Pager page={page} size={size} totalPages={query.totalPages} totalElements={query.totalElements} onPageChange={setPage} onSizeChange={setSize} />
+        </section>
+    );
+}
+
+export function MovementHistory() {
+    const [page, setPage] = usePaginationState("movements");
+    const [size, setSize] = useStateWithReset(20, () => setPage(0));
+    const query = usePagedQuery(() => inventoryService.getMovements(page, size), { errorTitle: "Movimientos" });
+    return (
+        <section className="space-y-4">
+            <div><h2 className="text-xl font-bold text-text">Historial de movimientos</h2><p className="text-sm text-text/60">Entradas y salidas registradas en inventario.</p></div>
+            <DataTable<InventoryMovement>
+                columns={[
+                    { key: "product", header: "Producto", render: (row) => row.product.name },
+                    { key: "type", header: "Tipo", render: (row) => row.type },
+                    { key: "quantity", header: "Cantidad", align: "right" },
+                    { key: "unitCost", header: "Costo unitario", align: "right", render: (row) => formatMoney(row.unitCost) },
+                    { key: "date", header: "Fecha", render: (row) => formatDate(row.date) },
+                    { key: "origin", header: "Origen", render: (row) => row.origin || "—" },
+                    { key: "batch", header: "Lote", render: (row) => row.batch ? `#${row.batch.id}` : "—" },
+                ]}
+                rows={query.rows} getRowKey={(row) => row.id} loading={query.loading} error={query.error}
+                loadingLabel="Cargando movimientos..." emptyState={{ icon: <RefreshCw />, title: "No hay movimientos", description: "No existen movimientos de inventario registrados." }}
+            />
+            <Pager page={page} size={size} totalPages={query.totalPages} totalElements={query.totalElements} onPageChange={setPage} onSizeChange={setSize} />
+        </section>
+    );
+}
+
+function useStateWithReset(initial: number, reset: () => void) {
+    const [value, setValue] = useState(initial);
+    const set = (next: number) => {
+        setValue(next);
+        reset();
+    };
+    return [value, set] as const;
+}

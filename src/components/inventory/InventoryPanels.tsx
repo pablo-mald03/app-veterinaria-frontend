@@ -1,8 +1,10 @@
 "use client";
 
-import { AlertTriangle, PackageSearch, RefreshCw } from "lucide-react";
+import { AlertTriangle, Eye, PackageSearch, RefreshCw } from "lucide-react";
 import { useCallback, useState } from "react";
 import Alert from "@/components/ui/common/Alert";
+import Button from "@/components/ui/common/Button";
+import Modal from "@/components/ui/common/Modal";
 import TextField from "@/components/ui/common/TextField";
 import StatusBadge from "@/components/ui/common/StatusBadge";
 import DataTable from "@/components/ui/table/DataTable";
@@ -15,6 +17,11 @@ import type { ExpiringProduct, InventoryBatch, InventoryMovement, LowStockProduc
 
 const formatDate = (value: string | undefined) => value ? new Date(value).toLocaleDateString("es-MX") : "—";
 const formatMoney = (value: number | undefined) => value === undefined ? "—" : `$${value.toFixed(2)}`;
+const formatMovementType = (type: string) => {
+    if (type === "IN") return { label: "Entrada", className: "bg-green-100 text-green-700" };
+    if (type === "OUT") return { label: "Salida", className: "bg-red-100 text-red-700" };
+    return { label: type, className: "bg-gray-100 text-gray-700" };
+};
 const formatLocalDateTime = (value: string) => {
     const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
     return match ? `${match[3]}/${match[2]}/${match[1]} ${match[4]}:${match[5]}` : "Fecha no disponible";
@@ -85,9 +92,9 @@ export function LowStockAlerts() {
 }
 
 export function ExpiringProductsAlerts() {
+    const [page, setPage] = usePaginationState("expiring");
     const [size, setSize] = useStateWithReset(20, () => setPage(0));
     const [days, setDays] = useStateWithReset(5, () => setPage(0));
-    const [page, setPage] = usePaginationState(`expiring-${days}`);
     const fetchExpiring = useCallback(() => inventoryService.getExpiringProducts(days, page, size), [days, page, size]);
     const query = usePagedQuery(fetchExpiring, { errorTitle: "Productos por vencer" });
     const updateDays = (value: string) => {
@@ -147,26 +154,132 @@ export function BatchList() {
 export function MovementHistory() {
     const [page, setPage] = usePaginationState("movements");
     const [size, setSize] = useStateWithReset(20, () => setPage(0));
+    const [selectedMovement, setSelectedMovement] = useState<InventoryMovement | null>(null);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const [detailError, setDetailError] = useState<string | null>(null);
     const fetchMovements = useCallback(() => inventoryService.getMovements(page, size), [page, size]);
     const query = usePagedQuery(fetchMovements, { errorTitle: "Movimientos" });
+
+    const openMovementDetail = async (movement: InventoryMovement) => {
+        setSelectedMovement(movement);
+        setDetailError(null);
+        setDetailLoading(true);
+
+        try {
+            setSelectedMovement(await inventoryService.getMovementById(movement.id));
+        } catch (error) {
+            setDetailError(error instanceof Error ? error.message : "No se pudo cargar el detalle del movimiento.");
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
+    const closeMovementDetail = () => {
+        if (!detailLoading) {
+            setSelectedMovement(null);
+            setDetailError(null);
+        }
+    };
+
     return (
         <section className="space-y-4">
             <div><h2 className="text-xl font-bold text-text">Historial de movimientos</h2><p className="text-sm text-text/60">Entradas y salidas registradas en inventario.</p></div>
             <DataTable<InventoryMovement>
                 columns={[
                     { key: "product", header: "Producto", render: (row) => row.product.name },
-                    { key: "type", header: "Tipo", render: (row) => row.type },
+                    {
+                        key: "type",
+                        header: "Tipo",
+                        render: (row) => {
+                            const movementType = formatMovementType(row.type);
+                            return (
+                                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${movementType.className}`}>
+                                    {movementType.label}
+                                </span>
+                            );
+                        },
+                    },
                     { key: "quantity", header: "Cantidad", align: "right" },
                     { key: "unitCost", header: "Costo unitario", align: "right", render: (row) => formatMoney(row.unitCost) },
                     { key: "date", header: "Fecha", render: (row) => formatDate(row.date) },
                     { key: "origin", header: "Origen", render: (row) => row.origin || "—" },
                     { key: "batch", header: "Lote", render: (row) => row.batch ? `#${row.batch.id}` : "—" },
+                    {
+                        key: "actions",
+                        header: "Acciones",
+                        render: (row) => (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                className="px-3 py-2 text-xs"
+                                icon={<Eye className="h-4 w-4" />}
+                                onClick={() => void openMovementDetail(row)}
+                            >
+                                Ver detalle
+                            </Button>
+                        ),
+                    },
                 ]}
                 rows={query.rows} getRowKey={(row) => row.id} loading={query.loading} error={query.error}
                 loadingLabel="Cargando movimientos..." emptyState={{ icon: <RefreshCw />, title: "No hay movimientos", description: "No existen movimientos de inventario registrados." }}
             />
             <Pager page={page} size={size} totalPages={query.totalPages} totalElements={query.totalElements} onPageChange={setPage} onSizeChange={setSize} />
+            <Modal
+                open={selectedMovement !== null}
+                onClose={closeMovementDetail}
+                size="2xl"
+                title={`Detalle del movimiento #${selectedMovement?.id ?? ""}`}
+                subtitle="Información completa disponible en inventario."
+                dismissible={!detailLoading}
+            >
+                {detailLoading ? (
+                    <p className="text-sm text-text/60">Cargando detalle del movimiento...</p>
+                ) : detailError ? (
+                    <Alert variant="error">{detailError}</Alert>
+                ) : selectedMovement ? (
+                    <div className="space-y-5">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <DetailItem label="Producto" value={selectedMovement.product.name} />
+                            <DetailItem label="SKU" value={selectedMovement.product.sku || "Sin SKU"} />
+                            <DetailItem
+                                label="Tipo"
+                                value={formatMovementType(selectedMovement.type).label}
+                            />
+                            <DetailItem label="Cantidad" value={String(selectedMovement.quantity)} />
+                            <DetailItem label="Costo unitario" value={formatMoney(selectedMovement.unitCost)} />
+                            <DetailItem label="Fecha" value={formatLocalDateTime(selectedMovement.date)} />
+                            <DetailItem label="Origen" value={selectedMovement.origin || "—"} />
+                            <DetailItem label="Lote" value={selectedMovement.batch ? `#${selectedMovement.batch.id}` : "—"} />
+                        </div>
+                        {selectedMovement.batch && (
+                            <div className="rounded-xl border border-mint bg-background p-4">
+                                <h3 className="font-semibold text-text">Información del lote</h3>
+                                <p className="mt-2 text-sm text-text/70">
+                                    Costo: {formatMoney(selectedMovement.batch.unitaryCost)} · Disponible: {selectedMovement.batch.availableQuantity} · Ganancia: {selectedMovement.batch.profitPercentage}%
+                                </p>
+                            </div>
+                        )}
+                        {selectedMovement.purchase && (
+                            <div className="rounded-xl border border-mint bg-background p-4">
+                                <h3 className="font-semibold text-text">Compra relacionada</h3>
+                                <p className="mt-2 text-sm text-text/70">
+                                    Compra #{selectedMovement.purchase.id} · {selectedMovement.purchase.description || "Sin descripción"} · Total: {formatMoney(selectedMovement.purchase.total)}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                ) : null}
+            </Modal>
         </section>
+    );
+}
+
+function DetailItem({ label, value }: { label: string; value: string }) {
+    return (
+        <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-text/60">{label}</dt>
+            <dd className="mt-1 text-sm font-medium text-text">{value}</dd>
+        </div>
     );
 }
 

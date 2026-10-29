@@ -3,7 +3,7 @@ import { apiFetch } from "@/lib/api/apiFetch";
 import { buildQuery } from "@/lib/api/http";
 import { ensureOk } from "@/lib/api/ensureOk";
 import type { Page } from "@/types/pagination";
-import type { InventoryBatch, InventoryMovement, LowStockProduct, ProductStockSummary } from "@/types/inventory";
+import type { ExpiringProduct, InventoryBatch, InventoryMovement, LowStockProduct, ProductStockSummary } from "@/types/inventory";
 import type { Purchase, PurchaseRequest } from "@/types/purchase";
 import type { Sale, SaleRequest } from "@/types/sale";
 import { JSON_HEADERS } from "@/lib/api/http";
@@ -81,6 +81,12 @@ export const inventoryService = {
             ENDPOINTS.INVENTORY_BATCHES.LOWER(pageParams(page, size)),
             "content",
             "No se pudieron cargar las alertas de stock bajo.",
+        ),
+    getExpiringProducts: (days = 5, page = 0, size = 20) =>
+        getPage<ExpiringProduct>(
+            ENDPOINTS.PRODUCTS.EXPIRING(buildQuery({ days, page, size, sortBy: "expirationDate", direction: "asc" })),
+            "content",
+            "No se pudieron cargar los productos por vencer.",
         ),
     getBatches: (page = 0, size = 20) =>
         getPage<InventoryBatch>(

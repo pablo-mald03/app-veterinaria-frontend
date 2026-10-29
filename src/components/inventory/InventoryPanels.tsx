@@ -3,6 +3,7 @@
 import { AlertTriangle, PackageSearch, RefreshCw } from "lucide-react";
 import { useCallback, useState } from "react";
 import Alert from "@/components/ui/common/Alert";
+import TextField from "@/components/ui/common/TextField";
 import StatusBadge from "@/components/ui/common/StatusBadge";
 import DataTable from "@/components/ui/table/DataTable";
 import PageSizeSelect from "@/components/ui/table/PageSizeSelect";
@@ -10,10 +11,14 @@ import TablePagination from "@/components/ui/table/TablePagination";
 import { usePagedQuery } from "@/hooks/usePagedQuery";
 import { usePaginationState } from "@/hooks/usePaginationState";
 import { inventoryService } from "@/services/inventoryService";
-import type { InventoryBatch, InventoryMovement, LowStockProduct, ProductStockSummary } from "@/types/inventory";
+import type { ExpiringProduct, InventoryBatch, InventoryMovement, LowStockProduct, ProductStockSummary } from "@/types/inventory";
 
 const formatDate = (value: string | undefined) => value ? new Date(value).toLocaleDateString("es-MX") : "—";
 const formatMoney = (value: number | undefined) => value === undefined ? "—" : `$${value.toFixed(2)}`;
+const formatLocalDateTime = (value: string) => {
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    return match ? `${match[3]}/${match[2]}/${match[1]} ${match[4]}:${match[5]}` : "Fecha no disponible";
+};
 
 function Pager({ page, size, totalPages, totalElements, onPageChange, onSizeChange }: {
     page: number;
@@ -71,6 +76,42 @@ export function LowStockAlerts() {
                 <>
                     <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                         {query.rows.map((row) => <Alert key={row.productId} variant="warning"><strong>{row.name}</strong> ({row.sku || "sin SKU"}): {row.currentStock} disponibles, mínimo {row.minimumStock}.</Alert>)}
+                    </div>
+                    <Pager page={page} size={size} totalPages={query.totalPages} totalElements={query.totalElements} onPageChange={setPage} onSizeChange={setSize} />
+                </>
+            )}
+        </section>
+    );
+}
+
+export function ExpiringProductsAlerts() {
+    const [size, setSize] = useStateWithReset(20, () => setPage(0));
+    const [days, setDays] = useStateWithReset(5, () => setPage(0));
+    const [page, setPage] = usePaginationState(`expiring-${days}`);
+    const fetchExpiring = useCallback(() => inventoryService.getExpiringProducts(days, page, size), [days, page, size]);
+    const query = usePagedQuery(fetchExpiring, { errorTitle: "Productos por vencer" });
+    const updateDays = (value: string) => {
+        const parsed = Number(value);
+        setDays(Number.isFinite(parsed) ? Math.min(365, Math.max(1, parsed)) : 1);
+    };
+
+    return (
+        <section className="space-y-3">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                    <h2 className="flex items-center gap-2 text-xl font-bold text-text"><AlertTriangle className="h-5 w-5 text-warning" /> Productos por vencer</h2>
+                    <p className="text-sm text-text/60">Productos activos cuya fecha de vencimiento está próxima.</p>
+                </div>
+                <div className="w-36">
+                    <TextField label="Próximos días" type="number" min="1" max="365" value={String(days)} onValueChange={updateDays} />
+                </div>
+            </div>
+            {query.error ? <Alert variant="error">{query.error}</Alert> : query.loading ? <p className="text-sm text-text/60">Cargando productos por vencer...</p> : query.rows.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-secondary p-4 text-sm text-text/60">Ningún producto vence en los próximos {days} días.</div>
+            ) : (
+                <>
+                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        {query.rows.map((row: ExpiringProduct) => <Alert key={row.id} variant="warning"><strong>{row.name}</strong> ({row.sku || "sin SKU"}): vence el {formatLocalDateTime(row.expirationDate)}.</Alert>)}
                     </div>
                     <Pager page={page} size={size} totalPages={query.totalPages} totalElements={query.totalElements} onPageChange={setPage} onSizeChange={setSize} />
                 </>

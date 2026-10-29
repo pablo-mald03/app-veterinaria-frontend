@@ -14,7 +14,7 @@ import ProductTable from "@/components/products/ProductTable";
 import { useToast } from "@/components/ui/toast/ToastProvider";
 import { categoryService } from "@/services/categoryService";
 import type { Category, CategoryRequest } from "@/types/category";
-import { BatchList, LowStockAlerts, MovementHistory, StockSummary } from "@/components/inventory/InventoryPanels";
+import { BatchList, ExpiringProductsAlerts, LowStockAlerts, MovementHistory, StockSummary } from "@/components/inventory/InventoryPanels";
 import PurchasePanel from "@/components/inventory/PurchasePanel";
 
 const STATUS_OPTIONS: DropdownOption[] = [
@@ -138,6 +138,7 @@ export default function InventoryView() {
             ) : tab === "stock" ? (
                 <>
                     <LowStockAlerts />
+                    <ExpiringProductsAlerts />
                     <StockSummary />
                 </>
             ) : tab === "batches" ? (

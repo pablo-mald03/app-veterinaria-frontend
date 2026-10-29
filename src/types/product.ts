@@ -28,6 +28,8 @@ export interface ProductRequest {
     minimumStock: number;
     price: number;
     profitPercentage: number;
+    discountPercentage: number;
+    expirationDate: string;
     provider: string;
     categoryId: number;
 }

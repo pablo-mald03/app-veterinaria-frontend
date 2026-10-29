@@ -41,3 +41,23 @@ export const productMinStockSchema = z
     .min(1, "El stock mínimo es obligatorio.")
     .regex(/^\d+$/, "El stock mínimo solo debe contener dígitos.")
     .refine((v) => Number(v) >= 0 && Number(v) <= MAX_INT32, "Ingresa un número igual o mayor a 0.");
+
+export const productDiscountSchema = z
+    .string()
+    .trim()
+    .min(1, "El descuento es obligatorio.")
+    .regex(/^\d+$/, "El descuento debe ser un número entero.")
+    .refine((v) => Number(v) <= 100, "El descuento máximo es 100.");
+
+export const productExpirationSchema = z
+    .string()
+    .trim()
+    .min(1, "La fecha de vencimiento es obligatoria.")
+    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, "Ingresa una fecha válida.")
+    .refine((value) => {
+        const normalized = value.length === 16 ? `${value}:00` : value;
+        const now = new Date();
+        const pad = (part: number) => String(part).padStart(2, "0");
+        const current = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+        return normalized >= current;
+    }, "La fecha no puede ser anterior al momento actual.");

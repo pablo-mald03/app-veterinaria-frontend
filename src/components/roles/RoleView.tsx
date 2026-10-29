@@ -9,6 +9,7 @@ import Spinner from "@/components/ui/common/Spinner";
 import PageHeader from "@/components/ui/common/PageHeader";
 import RoleCard from "@/components/roles/RoleCard";
 import RoleModal from "@/components/roles/RoleModal";
+import type { RoleFormValues } from "@/components/roles/RoleForm";
 import RolePermissionsModal from "@/components/roles/RolePermissionsModal";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/ui/toast/ToastProvider";
@@ -95,7 +96,7 @@ export default function RoleView() {
         setModalOpen(true);
     };
 
-    const handleSubmit = async (data: Omit<Role, "id">) => {
+    const handleSubmit = async (data: RoleFormValues) => {
         try {
             if (editingRole) {
                 await roleService.update(editingRole.id, {
@@ -103,13 +104,17 @@ export default function RoleView() {
                     name: data.name,
                     description: data.description,
                 });
+                // Only present when the user changed the permissions
+                if (data.permissionIds) {
+                    await roleService.updatePermissions(editingRole.id, data.permissionIds);
+                }
                 toast.success("Rol actualizado", data.name);
             } else {
                 await roleService.create({
                     alias: data.alias,
                     name: data.name,
                     description: data.description,
-                    permissionIds: [],
+                    permissionIds: data.permissionIds ?? [],
                 });
                 toast.success("Rol creado", data.name);
             }

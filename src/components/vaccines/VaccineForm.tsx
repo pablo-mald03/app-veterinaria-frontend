@@ -152,7 +152,6 @@ export default function VaccineForm({ onSubmit, onCancel }: TreatmentFormProps) 
                 min={1}
                 step={1}
                 placeholder="Opcional"
-                message="Déjalo vacío si es de aplicación única (no calcula próxima fecha)."
                 {...interval.props}
             />
 

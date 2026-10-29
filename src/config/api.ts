@@ -60,6 +60,7 @@ export const ENDPOINTS = {
 
   PRODUCTS: {
     LIST: (params: URLSearchParams) => `${API_BASE_URL}/products?${params}`,
+    EXPIRING: (params: URLSearchParams) => `${API_BASE_URL}/products/expiring?${params}`,
     CREATE: `${API_BASE_URL}/products`,
     DETAIL: (id: number) => `${API_BASE_URL}/products/${id}`,
     UPDATE: (id: number) => `${API_BASE_URL}/products/${id}`,

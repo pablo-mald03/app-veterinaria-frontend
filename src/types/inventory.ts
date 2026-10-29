@@ -16,6 +16,14 @@ export interface ProductStockSummary {
     activeBatchesCount: number;
 }
 
+export interface ExpiringProduct {
+    id: number;
+    name: string;
+    sku: string;
+    description: string;
+    expirationDate: string;
+}
+
 export interface LowStockProduct {
     productId: number;
     name: string;

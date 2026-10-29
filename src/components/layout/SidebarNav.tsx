@@ -24,6 +24,7 @@ export default function SidebarNav({ collapsed = false, onNavigate }: SidebarNav
                 {NAV_ITEMS
                     .filter((item) =>
                         (!item.adminOnly || hasRole("ADMIN")) &&
+                        (!item.allowedRoles || item.allowedRoles.some((role) => hasRole(role))) &&
                         (item.permission === null || hasPermission(item.permission))
                     )
                     .map((item) => {

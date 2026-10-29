@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Banknote, Barcode, Boxes, FileText, Package, Percent, Tag, Tags, Truck } from "lucide-react";
+import { Banknote, Barcode, Boxes, CalendarClock, FileText, Package, Percent, Tag, Tags, Truck } from "lucide-react";
 import { useField } from "@/hooks/useField";
 import { decimalOnly, digitsOnly } from "@/lib/forms/transform";
 import {
     productBrandSchema,
     productCategorySchema,
     productDescriptionSchema,
+    productDiscountSchema,
+    productExpirationSchema,
     productMinStockSchema,
     productNameSchema,
     productPriceSchema,
@@ -41,6 +43,8 @@ function buildInitialData(product: ProductResponse | null) {
         price: product ? String(product.price) : "",
         profit: product ? String(product.profitPercentage) : "",
         minStock: product ? String(product.minimumStock) : "",
+        discount: "",
+        expirationDate: "",
     };
 }
 
@@ -61,8 +65,10 @@ export default function ProductForm({ editingProduct, categoryOptions, onSubmit,
     const price = useField({ initialValue: initial.price, validator: productPriceSchema, validateOn: "blur", transform: decimalOnly });
     const profit = useField({ initialValue: initial.profit, validator: productProfitSchema, validateOn: "blur", transform: digitsOnly });
     const minStock = useField({ initialValue: initial.minStock, validator: productMinStockSchema, validateOn: "blur", transform: digitsOnly });
+    const discount = useField({ initialValue: initial.discount, validator: productDiscountSchema, validateOn: "blur", transform: digitsOnly });
+    const expirationDate = useField({ initialValue: initial.expirationDate, validator: productExpirationSchema, validateOn: "blur" });
 
-    const fields = [sku, name, brand, provider, description, categoryId, price, profit, minStock];
+    const fields = [sku, name, brand, provider, description, categoryId, price, profit, minStock, discount, expirationDate];
     const isFormValid = fields.every((f) => f.valid);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -83,6 +89,8 @@ export default function ProductForm({ editingProduct, categoryOptions, onSubmit,
             price: Number(price.value),
             profitPercentage: Number(profit.value),
             minimumStock: Number(minStock.value),
+            discountPercentage: Number(discount.value),
+            expirationDate: expirationDate.value.length === 16 ? `${expirationDate.value}:00` : expirationDate.value,
         };
 
         try {
@@ -124,8 +132,17 @@ export default function ProductForm({ editingProduct, categoryOptions, onSubmit,
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <TextField label="Precio (Q)" icon={<Banknote />} placeholder="0.00" inputMode="decimal" maxLength={13} {...price.props} />
                 <TextField label="Ganancia (%)" icon={<Percent />} placeholder="30" inputMode="numeric" maxLength={3} {...profit.props} />
+                <TextField label="Descuento (%)" icon={<Percent />} placeholder="0" inputMode="numeric" maxLength={3} message={isEditing ? "El sistema no devuelve este dato: vuelve a capturarlo" : undefined} {...discount.props} />
                 <TextField label="Stock mínimo" icon={<Boxes />} placeholder="5" inputMode="numeric" maxLength={10} {...minStock.props} />
             </div>
+
+            <TextField
+                label="Fecha de vencimiento"
+                icon={<CalendarClock />}
+                type="datetime-local"
+                message={isEditing ? "El sistema no devuelve este dato: vuelve a capturarlo" : undefined}
+                {...expirationDate.props}
+            />
 
             <TextArea
                 label="Descripción"

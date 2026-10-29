@@ -10,7 +10,8 @@ import StatusBadge from "@/components/ui/common/StatusBadge";
 import { useToast } from "@/components/ui/toast/ToastProvider";
 import { paymentService } from "@/services/paymentService";
 import AppointmentSupplies from "@/components/appointments/AppointmentSupplies";
-import type { Payment, PaymentItemRequest, SupplyLine } from "@/types/payment";
+import PaymentDetailsForm from "@/components/payments/PaymentDetailsForm";
+import type { ChargeReceipt, DetailedPaymentMethod, Payment, PaymentItemRequest, SupplyLine } from "@/types/payment";
 
 interface PaymentModalProps {
     open: boolean;
@@ -24,6 +25,8 @@ const PAYMENT_METHODS: DropdownOption[] = [
     { value: "CREDIT_CARD", label: "Tarjeta de crédito" },
     { value: "TRANSFER", label: "Transferencia" },
 ];
+
+const isDetailedMethod = (method: string): method is DetailedPaymentMethod => method === "CREDIT_CARD" || method === "TRANSFER";
 
 const ITEM_TYPES: DropdownOption[] = [
     { value: "CONSULTATION", label: "Consulta" },
@@ -50,12 +53,15 @@ export default function PaymentModal({ open, appointmentId, petName, onClose }: 
     const [item, setItem] = useState<PaymentItemRequest>(EMPTY_ITEM);
     const [paymentMethod, setPaymentMethod] = useState("");
     const [supplyLines, setSupplyLines] = useState<SupplyLine[]>([]);
+    const [receipt, setReceipt] = useState<ChargeReceipt | null>(null);
 
     useEffect(() => {
         if (!open || appointmentId === null) return;
         void Promise.resolve().then(() => {
             setPayment(null);
             setSupplyLines([]);
+            setPaymentMethod("");
+            setReceipt(null);
             setLoading(true);
             return paymentService.getByAppointment(appointmentId)
                 .then(setPayment)
@@ -122,6 +128,13 @@ export default function PaymentModal({ open, appointmentId, petName, onClose }: 
         }
     };
 
+    const processDetailedPayment = async (approved: ChargeReceipt) => {
+        if (!payment) return;
+        setPayment(await paymentService.process(payment.id, approved.method));
+        setReceipt(approved);
+        toast.success("Pago procesado", approved.summary);
+    };
+
     const downloadInvoice = async () => {
         if (!payment) return;
         try {
@@ -165,13 +178,31 @@ export default function PaymentModal({ open, appointmentId, petName, onClose }: 
                                 <AppointmentSupplies value={supplyLines} onChange={setSupplyLines} hint="Arma la lista y cárgala a la cuenta con un solo clic." />
                                 <Button type="button" disabled={supplyLines.length === 0} loading={saving} icon={<Plus className="h-4 w-4" />} onClick={() => void addSupplies()}>Agregar productos a la cuenta</Button>
                             </div>
-                            <div className="flex flex-wrap items-end gap-3 rounded-xl border border-secondary p-4">
-                                <Dropdown label="Método de pago" options={PAYMENT_METHODS} value={paymentMethod} onValueChange={setPaymentMethod} placeholder="Selecciona un método" />
-                                <Button disabled={!paymentMethod} loading={saving} icon={<CreditCard className="h-4 w-4" />} onClick={() => void processPayment()}>Procesar pago</Button>
+                            <div className="space-y-4 rounded-xl border border-secondary p-4">
+                                <div className="flex flex-wrap items-end gap-3">
+                                    <Dropdown label="Método de pago" options={PAYMENT_METHODS} value={paymentMethod} onValueChange={setPaymentMethod} placeholder="Selecciona un método" />
+                                    {paymentMethod === "CASH" && (
+                                        <Button loading={saving} icon={<CreditCard className="h-4 w-4" />} onClick={() => void processPayment()}>Procesar pago</Button>
+                                    )}
+                                </div>
+                                {isDetailedMethod(paymentMethod) && (
+                                    <PaymentDetailsForm key={paymentMethod} method={paymentMethod} amount={payment.totalAmount} onApproved={processDetailedPayment} submitLabel="Cobrar" />
+                                )}
                             </div>
                         </>
                     )}
-                    {payment.status === "PAID" && <Button onClick={() => void downloadInvoice()} icon={<Download className="h-4 w-4" />}>Descargar factura PDF</Button>}
+                    {payment.status === "PAID" && (
+                        <div className="space-y-3">
+                            {receipt && (
+                                <div className="rounded-xl border border-success-border bg-success-soft p-4 text-sm text-success">
+                                    <p className="font-semibold">Cobro aprobado (simulado)</p>
+                                    <p>{receipt.summary}</p>
+                                    <p className="text-xs">Transacción {receipt.transactionId}</p>
+                                </div>
+                            )}
+                            <Button onClick={() => void downloadInvoice()} icon={<Download className="h-4 w-4" />}>Descargar factura PDF</Button>
+                        </div>
+                    )}
                 </div>
             )}
         </Modal>

@@ -60,12 +60,33 @@ export const ENDPOINTS = {
 
   PRODUCTS: {
     LIST: (params: URLSearchParams) => `${API_BASE_URL}/products?${params}`,
+    EXPIRING: (params: URLSearchParams) => `${API_BASE_URL}/products/expiring?${params}`,
     CREATE: `${API_BASE_URL}/products`,
     DETAIL: (id: number) => `${API_BASE_URL}/products/${id}`,
     UPDATE: (id: number) => `${API_BASE_URL}/products/${id}`,
     STATUS: (id: number) => `${API_BASE_URL}/products/${id}/status`,
     VACCINES: (params: URLSearchParams) => `${API_BASE_URL}/products/vaccines?${params}`,
     DEWORMERS: (params: URLSearchParams) => `${API_BASE_URL}/products/dewormers?${params}`,
+  },
+  INVENTORY_BATCHES: {
+    LIST: (params: URLSearchParams) => `${API_BASE_URL}/inventory-batches?${params}`,
+    DETAIL: (id: number) => `${API_BASE_URL}/inventory-batches/${id}`,
+    STOCK_SUMMARY: (params: URLSearchParams) => `${API_BASE_URL}/inventory-batches/stock-summary?${params}`,
+    LOWER: (params: URLSearchParams) => `${API_BASE_URL}/inventory-batches/lower?${params}`,
+  },
+  INVENTORY_MOVEMENTS: {
+    LIST: (params: URLSearchParams) => `${API_BASE_URL}/inventory-movements?${params}`,
+    DETAIL: (id: number) => `${API_BASE_URL}/inventory-movements/${id}`,
+  },
+  PURCHASES: {
+    LIST: (params: URLSearchParams) => `${API_BASE_URL}/purchases?${params}`,
+    DETAIL: (id: number) => `${API_BASE_URL}/purchases/${id}`,
+    CREATE: `${API_BASE_URL}/purchases`,
+  },
+  SALES: {
+    LIST: (params: URLSearchParams) => `${API_BASE_URL}/sales?${params}`,
+    DETAIL: (id: number) => `${API_BASE_URL}/sales/${id}`,
+    CREATE: `${API_BASE_URL}/sales`,
   },
 
   PAYMENTS: {

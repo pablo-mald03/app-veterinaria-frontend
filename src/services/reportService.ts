@@ -32,7 +32,7 @@ export const reportService = {
     pendingVaccines: (days: number) =>
         getJson<PendingVaccineReport[]>(
             `${ENDPOINTS.REPORTS.PENDING_VACCINES}?${buildQuery({ days })}`,
-            "Error al consultar las vacunas pendientes.",
+            "Error al consultar los tratamientos pendientes.",
         ),
 
     downloadAttendedPetsPdf: (from: string, to: string) =>

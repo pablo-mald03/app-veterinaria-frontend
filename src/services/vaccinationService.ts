@@ -6,11 +6,11 @@ import { getPets } from "@/services/petsService";
 import type { VaccinationBackend } from "@/services/vaccinationBackend";
 import { vaccinationHttp } from "@/services/vaccinationHttp";
 import type { UpcomingVaccinationView, VaccinationInput, VaccinationView } from "@/types/vaccination";
-import type { VaccinationRecordResponse, VaccineResponse } from "@/types/vaccination-api";
+import type { TreatmentResponse, VaccinationRecordResponse } from "@/types/vaccination-api";
 
-// Servicio del módulo de vacunación.
+// Servicio de aplicación de tratamientos a mascotas.
 //
-// Convierte los datos crudos del backend (carnet, dosis, catálogo) en lo que necesita la
+// Convierte los datos crudos del backend (carnet, aplicaciones, catálogo) en lo que necesita la
 // interfaz. Usa el backend real; los datos simulados solo con NEXT_PUBLIC_USE_MOCKS=true.
 
 const backend: VaccinationBackend = USE_MOCKS ? vaccinationMock : vaccinationHttp;
@@ -24,10 +24,10 @@ const petsWithoutCard = new Set<number>();
 // ---- Catálogo (se cachea un minuto: lo necesitan el carnet, el formulario y la campana) ----
 
 const CATALOG_TTL_MS = 60_000;
-let catalogCache: { at: number; data: VaccineResponse[] } | null = null;
+let catalogCache: { at: number; data: TreatmentResponse[] } | null = null;
 
-/** Catálogo de vacunas (GET /vaccines). */
-export async function getVaccineCatalog(): Promise<VaccineResponse[]> {
+/** Catálogo de tratamientos (GET /treatments). */
+export async function getTreatmentCatalog(): Promise<TreatmentResponse[]> {
   if (catalogCache && Date.now() - catalogCache.at < CATALOG_TTL_MS) return catalogCache.data;
 
   const data = await backend.getCatalog();
@@ -35,10 +35,10 @@ export async function getVaccineCatalog(): Promise<VaccineResponse[]> {
   return data;
 }
 
-/** Para los nombres: si el catálogo falla, el carnet igual se muestra (con "Vacuna #id"). */
-async function getCatalogOrEmpty(): Promise<VaccineResponse[]> {
+/** Para los nombres: si el catálogo falla, el carnet igual se muestra (con "Tratamiento #id"). */
+async function getCatalogOrEmpty(): Promise<TreatmentResponse[]> {
   try {
-    return await getVaccineCatalog();
+    return await getTreatmentCatalog();
   } catch {
     return [];
   }
@@ -46,29 +46,27 @@ async function getCatalogOrEmpty(): Promise<VaccineResponse[]> {
 
 // ---- Conversión de datos crudos a modelos de la interfaz ----
 
-function toView(record: VaccinationRecordResponse, idPet: number, catalog: VaccineResponse[]): VaccinationView {
-  const vaccine = catalog.find((item) => item.idVaccine === record.idVaccine);
+function toView(record: VaccinationRecordResponse, idPet: number, catalog: TreatmentResponse[]): VaccinationView {
+  const treatment = catalog.find((item) => item.idTreatment === record.idTreatment);
 
   return {
     idVaccination: record.idRecord,
     idPet,
-    idVaccine: record.idVaccine,
-    vaccineName: vaccine?.name ?? `Vacuna #${record.idVaccine}`,
+    idTreatment: record.idTreatment,
+    treatmentName: treatment?.name ?? `Tratamiento #${record.idTreatment}`,
     idDoctor: record.idDoctor,
-    doseNumber: record.doseNumber,
+    applicationNumber: record.applicationNumber,
     appliedAt: record.applicationDate,
     nextDoseDate: record.nextDoseDate,
     status: computeVaccinationStatus(record.nextDoseDate),
-    // Sin próxima dosis y con todas las dosis aplicadas = esquema completo.
-    schemeComplete: record.nextDoseDate === null && Boolean(vaccine) && record.doseNumber >= (vaccine?.dosesRequired ?? 0),
-    lot: record.batchNumber,
+    totalCost: record.totalCost,
     notes: record.notes,
   };
 }
 
 // ---- Carnet de una mascota ----
 
-/** Dosis aplicadas a una mascota. Si todavía no tiene carnet, devuelve una lista vacía. */
+/** Tratamientos aplicados a una mascota. Si todavía no tiene carnet, devuelve una lista vacía. */
 export async function getPetVaccinations(petId: number): Promise<VaccinationView[]> {
   const card = await backend.getCardByPet(petId);
   if (!card) return [];
@@ -78,18 +76,18 @@ export async function getPetVaccinations(petId: number): Promise<VaccinationView
 }
 
 /**
- * Registra una vacuna aplicada. Crea el carnet de la mascota si todavía no existe.
- * El backend calcula el número de dosis y la próxima fecha, y rechaza si el esquema está completo.
+ * Registra un tratamiento aplicado. Crea el carnet de la mascota si todavía no existe.
+ * El backend calcula el número de aplicación, la próxima fecha y el costo, y descuenta
+ * del inventario los productos del tratamiento (si no hay stock suficiente, lo rechaza).
  */
 export async function createPetVaccination(petId: number, input: VaccinationInput, doctorId: number): Promise<void> {
   const card = (await backend.getCardByPet(petId)) ?? (await backend.createCard(petId));
 
   await backend.registerRecord({
     idCard: card.idCard,
-    idVaccine: input.idVaccine,
+    idTreatment: input.idTreatment,
     idDoctor: doctorId,
     applicationDate: input.appliedAt,
-    batchNumber: input.lot,
     notes: input.notes,
   });
 
@@ -102,7 +100,7 @@ export async function createPetVaccination(petId: number, input: VaccinationInpu
 
 // ---- Avisos (campana) ----
 //
-// GET /vaccination-records/pending devuelve solo { idCard, idVaccine, ... }: no dice a qué
+// GET /vaccination-records/pending devuelve solo { idCard, idTreatment, ... }: no dice a qué
 // mascota pertenece cada carnet y no hay un endpoint para averiguarlo. Mientras el backend no
 // agregue idPet/petName a esa respuesta, se identifica cada carnet consultando el de las
 // mascotas (con memoria para no repetir las llamadas). Si el backend ya envía idPet/petName,
@@ -113,8 +111,8 @@ async function resolveCardOwners(cardIds: number[]): Promise<void> {
   if (missing.size === 0) return;
 
   const pets = await getPets(0, PET_PAGE_SIZE)
-    .then((page) => page.content)
-    .catch(() => []);
+      .then((page) => page.content)
+      .catch(() => []);
 
   const queue = pets.filter((pet) => !petsWithoutCard.has(pet.idPet));
 
@@ -141,7 +139,7 @@ async function resolveCardOwners(cardIds: number[]): Promise<void> {
   await Promise.all(Array.from({ length: RESOLVE_CONCURRENCY }, worker));
 }
 
-/** Vacunas vencidas y por vencer en los próximos `days` días (GET /vaccination-records/pending). */
+/** Tratamientos vencidos y por vencer en los próximos `days` días (GET /vaccination-records/pending). */
 export async function getUpcomingVaccinations(days = VACCINATION_DUE_SOON_DAYS): Promise<UpcomingVaccinationView[]> {
   const pending = await backend.getPending(days);
   if (pending.length === 0) return [];
@@ -151,8 +149,8 @@ export async function getUpcomingVaccinations(days = VACCINATION_DUE_SOON_DAYS):
 
   return pending.map((record) => {
     const owner = record.idPet !== undefined
-      ? { idPet: record.idPet, petName: record.petName ?? "Mascota" }
-      : cardOwners.get(record.idCard);
+        ? { idPet: record.idPet, petName: record.petName ?? "Mascota" }
+        : cardOwners.get(record.idCard);
 
     return {
       ...toView(record, owner?.idPet ?? 0, catalog),

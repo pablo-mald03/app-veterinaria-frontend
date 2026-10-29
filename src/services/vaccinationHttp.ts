@@ -4,13 +4,13 @@ import { ensureOk } from "@/lib/api/ensureOk";
 import type { VaccinationBackend } from "@/services/vaccinationBackend";
 import type { Page } from "@/types/pagination";
 import type {
+  TreatmentResponse,
   VaccinationCardResponse,
   VaccinationRecordRequest,
   VaccinationRecordResponse,
-  VaccineResponse,
 } from "@/types/vaccination-api";
 
-// Backend REAL de vacunación (llamadas HTTP). Ver los contratos en types/vaccination-api.ts.
+// Backend REAL de tratamientos (llamadas HTTP). Ver los contratos en types/vaccination-api.ts.
 
 /** Acepta tanto un arreglo simple como una respuesta paginada ({ content: [...] }). */
 function toList<T>(data: T[] | Page<T> | null | undefined): T[] {
@@ -20,18 +20,11 @@ function toList<T>(data: T[] | Page<T> | null | undefined): T[] {
 
 export const vaccinationHttp: VaccinationBackend = {
   async getCatalog() {
-    // sortBy explícito: el backend usa "id" por defecto y la entidad se llama "idVaccine".
-    const params = new URLSearchParams({
-      pageNumber: "0",
-      pageSize: "100",
-      sortBy: "name",
-      direction: "asc",
-    });
-
-    const response = await apiFetch(`${ENDPOINTS.VACCINES.LIST}?${params}`);
+    // GET /treatments no recibe parámetros: devuelve el catálogo completo.
+    const response = await apiFetch(ENDPOINTS.TREATMENTS.LIST);
     await ensureOk(response, "No se pudo cargar el catálogo de tratamientos.");
 
-    return toList<VaccineResponse>(await response.json());
+    return toList<TreatmentResponse>(await response.json());
   },
 
   async getCardByPet(idPet) {

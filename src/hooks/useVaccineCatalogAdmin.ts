@@ -1,18 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getVaccineCatalog } from "@/services/vaccineCatalogService";
-import type { VaccineResponse } from "@/types/vaccination-api";
+import { getTreatmentCatalog } from "@/services/vaccineCatalogService";
+import type { TreatmentResponse } from "@/types/vaccination-api";
 
 interface CatalogState {
     loaded: boolean;
-    vaccines: VaccineResponse[];
+    treatments: TreatmentResponse[];
     error: string | null;
 }
 
-const INITIAL_STATE: CatalogState = { loaded: false, vaccines: [], error: null };
+const INITIAL_STATE: CatalogState = { loaded: false, treatments: [], error: null };
 
-/** Catálogo completo de vacunas para la pantalla de administración. `reload()` lo vuelve a pedir. */
+/** Catálogo completo de tratamientos para la pantalla de administración. `reload()` lo vuelve a pedir. */
 export function useVaccineCatalogAdmin() {
     const [state, setState] = useState<CatalogState>(INITIAL_STATE);
     const [version, setVersion] = useState(0);
@@ -20,14 +20,14 @@ export function useVaccineCatalogAdmin() {
     useEffect(() => {
         let cancelled = false;
 
-        getVaccineCatalog()
-            .then((vaccines) => {
-                if (!cancelled) setState({ loaded: true, vaccines, error: null });
+        getTreatmentCatalog()
+            .then((treatments) => {
+                if (!cancelled) setState({ loaded: true, treatments, error: null });
             })
             .catch((err: unknown) => {
                 if (cancelled) return;
                 const message = err instanceof Error ? err.message : "No se pudo cargar el catálogo.";
-                setState({ loaded: true, vaccines: [], error: message });
+                setState({ loaded: true, treatments: [], error: message });
             });
 
         return () => {
@@ -36,7 +36,7 @@ export function useVaccineCatalogAdmin() {
     }, [version]);
 
     return {
-        vaccines: state.vaccines,
+        treatments: state.treatments,
         error: state.error,
         loading: !state.loaded,
         reload: () => setVersion((current) => current + 1),

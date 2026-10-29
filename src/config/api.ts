@@ -126,11 +126,14 @@ export const ENDPOINTS = {
     DIAGNOSIS: (id: number) => `${API_BASE_URL}/appointments/${id}/diagnosis`,
     PET_HISTORY: (petId: number) => `${API_BASE_URL}/appointments/pet/${petId}/history`,
   },
-  //Vaccination module (contrato REAL del backend, rama develop)
-  VACCINES: {
-    LIST: `${API_BASE_URL}/vaccines`,
-    DETAIL: (id: number) => `${API_BASE_URL}/vaccines/${id}`,
+
+  //Treatments module (catálogo de tratamientos y los productos que consumen)
+  TREATMENTS: {
+    LIST: `${API_BASE_URL}/treatments`,
+    DETAIL: (id: number) => `${API_BASE_URL}/treatments/${id}`,
   },
+
+  //Aplicación de tratamientos a mascotas (carnet y registros)
   VACCINATION_CARDS: {
     // OJO: el backend declara @RequestMapping("/api/vaccination-cards") y ya existe el context-path
     // /api/v1, por eso queda "/api/v1/api/vaccination-cards". Cuando lo corrijan en el backend,

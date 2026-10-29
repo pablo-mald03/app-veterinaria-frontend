@@ -14,7 +14,6 @@ import type { UpcomingVaccinationView } from "@/types/vaccination";
 
 const MAX_BADGE_COUNT = 9;
 
-//Campana de avisos del header: vacunas vencidas y por vencer
 export default function NotificationBell() {
     const { hasPermission } = useAuth();
     const router = useRouter();
@@ -116,7 +115,7 @@ export default function NotificationBell() {
 
                                         <span className="min-w-0 flex-1 text-left">
                                             <span className="block truncate text-sm font-semibold text-text">
-                                                {item.petName} · {item.vaccineName}
+                                                {item.petName} · {item.treatmentName}
                                             </span>
                                             <span className="block text-xs font-medium text-text/70">
                                                 {describeDue(days)} · {formatDate(item.nextDoseDate)}

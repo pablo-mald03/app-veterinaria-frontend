@@ -2,30 +2,45 @@ import { addDays, daysFromToday, toIsoDate } from "@/lib/vaccination/dates";
 import { getPets } from "@/services/petsService";
 import type { VaccinationBackend } from "@/services/vaccinationBackend";
 import type {
+  TreatmentProduct,
+  TreatmentResponse,
   VaccinationCardResponse,
   VaccinationRecordResponse,
-  VaccineResponse,
 } from "@/types/vaccination-api";
 
-// BACKEND SIMULADO de vacunación (solo desarrollo, con NEXT_PUBLIC_USE_MOCKS=true).
+// BACKEND SIMULADO de tratamientos (solo desarrollo, con NEXT_PUBLIC_USE_MOCKS=true).
 // Implementa el MISMO contrato que el backend real y replica sus reglas:
-//  - la dosis la calcula el servidor (registradas + 1) y se rechaza si supera el esquema
-//  - la próxima dosis solo existe si faltan dosis del esquema
-//  - /pending devuelve la última dosis de cada vacuna con próxima dosis <= hoy + días
+//  - el número de aplicación lo calcula el servidor (registradas + 1)
+//  - la próxima fecha solo existe si el tratamiento tiene intervalo
+//  - cada aplicación descuenta los productos del tratamiento y calcula su costo total
+//  - /pending devuelve la última aplicación de cada tratamiento con próxima fecha <= hoy + días
 //  - el carnet de una mascota no existe hasta que se crea
 // Es opcional: sirve para trabajar sin backend. Se puede borrar cuando ya no haga falta.
 
-const STORAGE_KEY = "happypets.mock.vaccination.v2";
+const STORAGE_KEY = "happypets.mock.vaccination.v3";
 const LATENCY_MS = 300;
 
-const CATALOG: VaccineResponse[] = [
-  { idVaccine: 1, name: "Rabia", description: "Vacuna antirrábica", species: "PERRO, GATO", dosesRequired: 2, intervalDays: 365, status: true },
-  { idVaccine: 2, name: "Parvovirus", description: "Protección contra parvovirus canino", species: "PERRO", dosesRequired: 3, intervalDays: 21, status: true },
-  { idVaccine: 3, name: "Moquillo", description: "Protección contra moquillo canino", species: "PERRO", dosesRequired: 3, intervalDays: 21, status: true },
-  { idVaccine: 4, name: "Triple felina", description: "Panleucopenia, rinotraqueítis y calicivirus", species: "GATO", dosesRequired: 3, intervalDays: 21, status: true },
-  { idVaccine: 5, name: "Leucemia felina", description: "Protección contra FeLV", species: "GATO", dosesRequired: 2, intervalDays: 21, status: true },
-  { idVaccine: 6, name: "Newcastle", description: "Vacuna para aves", species: "AVE", dosesRequired: 2, intervalDays: 30, status: true },
-  { idVaccine: 7, name: "Coronavirus canino", description: "Descontinuada en la clínica", species: "PERRO", dosesRequired: 2, intervalDays: 365, status: false },
+// Precio unitario simulado de cada producto (productId -> costo).
+const PRODUCT_COSTS: Record<number, number> = { 1: 85, 2: 40, 3: 120, 4: 110, 5: 60, 6: 25 };
+
+function estimateCost(products: TreatmentProduct[]): number {
+  return products.reduce((sum, product) => sum + product.quantity * (PRODUCT_COSTS[product.productId] ?? 0), 0);
+}
+
+function treatment(
+    base: Omit<TreatmentResponse, "estimatedCost">,
+): TreatmentResponse {
+  return { ...base, estimatedCost: estimateCost(base.products) };
+}
+
+const CATALOG: TreatmentResponse[] = [
+  treatment({ idTreatment: 1, name: "Vacuna antirrábica", description: "Refuerzo anual contra la rabia", intervalDays: 365, status: true, species: ["PERRO", "GATO"], products: [{ productId: 1, quantity: 1 }] }),
+  treatment({ idTreatment: 2, name: "Desparasitación interna", description: "Desparasitante oral cada tres meses", intervalDays: 90, status: true, species: ["PERRO", "GATO"], products: [{ productId: 2, quantity: 1 }] }),
+  treatment({ idTreatment: 3, name: "Refuerzo de parvovirus", description: "Protección contra parvovirus canino", intervalDays: 21, status: true, species: ["PERRO"], products: [{ productId: 3, quantity: 1 }] }),
+  treatment({ idTreatment: 4, name: "Triple felina", description: "Panleucopenia, rinotraqueítis y calicivirus", intervalDays: 365, status: true, species: ["GATO"], products: [{ productId: 4, quantity: 1 }] }),
+  treatment({ idTreatment: 5, name: "Baño medicado", description: "Aplicación única, no se repite", intervalDays: null, status: true, species: ["PERRO", "GATO"], products: [{ productId: 5, quantity: 1 }, { productId: 6, quantity: 2 }] }),
+  treatment({ idTreatment: 6, name: "Vitaminas para aves", description: "Suplemento mensual", intervalDays: 30, status: true, species: ["AVE"], products: [{ productId: 6, quantity: 2 }] }),
+  treatment({ idTreatment: 7, name: "Coronavirus canino", description: "Descontinuado en la clínica", intervalDays: 365, status: false, species: ["PERRO"], products: [{ productId: 3, quantity: 1 }] }),
 ];
 
 interface MockStore {
@@ -79,30 +94,37 @@ function daysAgo(days: number): string {
 
 // ---- Reglas del backend ----
 
-function nextDoseDateFor(vaccine: VaccineResponse, doseNumber: number, appliedAt: string): string | null {
-  const hasMoreDoses = doseNumber < vaccine.dosesRequired;
-  return hasMoreDoses && vaccine.intervalDays ? addDays(appliedAt, vaccine.intervalDays) : null;
+function nextDoseDateFor(item: TreatmentResponse, appliedAt: string): string | null {
+  return item.intervalDays ? addDays(appliedAt, item.intervalDays) : null;
 }
 
 function addRecord(
-  store: MockStore,
-  idCard: number,
-  vaccine: VaccineResponse,
-  appliedAt: string,
-  extra: { batchNumber?: string; notes?: string; idDoctor?: number } = {},
+    store: MockStore,
+    idCard: number,
+    item: TreatmentResponse,
+    appliedAt: string,
+    extra: { notes?: string; idDoctor?: number } = {},
 ): VaccinationRecordResponse {
-  const doseNumber = store.records.filter((r) => r.idCard === idCard && r.idVaccine === vaccine.idVaccine).length + 1;
+  const applicationNumber = store.records.filter((r) => r.idCard === idCard && r.idTreatment === item.idTreatment).length + 1;
+
+  const items = item.products.map((product) => ({
+    productId: product.productId,
+    batchId: 1,
+    quantity: product.quantity,
+    unitCost: PRODUCT_COSTS[product.productId] ?? 0,
+  }));
 
   const record: VaccinationRecordResponse = {
     idRecord: store.nextRecordId++,
     idCard,
-    idVaccine: vaccine.idVaccine,
+    idTreatment: item.idTreatment,
     idDoctor: extra.idDoctor ?? 1,
-    doseNumber,
+    applicationNumber,
     applicationDate: appliedAt,
-    nextDoseDate: nextDoseDateFor(vaccine, doseNumber, appliedAt),
-    batchNumber: extra.batchNumber ?? null,
+    nextDoseDate: nextDoseDateFor(item, appliedAt),
+    totalCost: items.reduce((sum, line) => sum + line.quantity * line.unitCost, 0),
     notes: extra.notes ?? null,
+    items,
   };
 
   store.records.push(record);
@@ -127,28 +149,27 @@ function createCardIn(store: MockStore, idPet: number): VaccinationCardResponse 
 /**
  * Escenario inicial según el id de la mascota, para poder probar todos los estados:
  *  - id % 3 === 0 -> sin carnet (aún no se creó)
- *  - id % 3 === 1 -> una al día y una vencida
- *  - id % 3 === 2 -> una por vencer, una vencida con dosis anterior superada y una con esquema completo
+ *  - id % 3 === 1 -> uno al día y uno vencido
+ *  - id % 3 === 2 -> uno por vencer, uno vencido con una aplicación anterior superada y uno de aplicación única
  */
 function seedPet(store: MockStore, idPet: number): void {
   if (store.seeded.includes(idPet)) return;
   store.seeded.push(idPet);
 
-  const vaccine = (id: number) => CATALOG.find((v) => v.idVaccine === id)!;
+  const find = (id: number) => CATALOG.find((t) => t.idTreatment === id)!;
   const scenario = idPet % 3;
   if (scenario === 0) return;
 
   const card = createCardIn(store, idPet);
 
   if (scenario === 1) {
-    addRecord(store, card.idCard, vaccine(1), daysAgo(100), { batchNumber: "RAB-2026-01" });
-    addRecord(store, card.idCard, vaccine(3), daysAgo(40), { batchNumber: "MOQ-0415" });
+    addRecord(store, card.idCard, find(1), daysAgo(100));
+    addRecord(store, card.idCard, find(3), daysAgo(40));
   } else {
-    addRecord(store, card.idCard, vaccine(1), daysAgo(340), { batchNumber: "RAB-2025-11" });
-    addRecord(store, card.idCard, vaccine(2), daysAgo(45));
-    addRecord(store, card.idCard, vaccine(2), daysAgo(24), { notes: "Sin reacciones adversas." });
-    addRecord(store, card.idCard, vaccine(5), daysAgo(60));
-    addRecord(store, card.idCard, vaccine(5), daysAgo(30), { notes: "Esquema completo." });
+    addRecord(store, card.idCard, find(1), daysAgo(340));
+    addRecord(store, card.idCard, find(2), daysAgo(120));
+    addRecord(store, card.idCard, find(2), daysAgo(20), { notes: "Sin reacciones adversas." });
+    addRecord(store, card.idCard, find(5), daysAgo(15));
   }
 
   writeStore(store);
@@ -188,19 +209,14 @@ export const vaccinationMock: VaccinationBackend = {
     const store = readStore();
 
     if (!store.cards.some((c) => c.idCard === request.idCard)) {
-      throw new Error(`No existe el carnet de vacunación con id ${request.idCard}.`);
+      throw new Error(`No existe el carnet con id ${request.idCard}.`);
     }
 
-    const vaccine = CATALOG.find((v) => v.idVaccine === request.idVaccine);
-    if (!vaccine) throw new Error(`No existe la vacuna con id ${request.idVaccine}.`);
+    const found = CATALOG.find((t) => t.idTreatment === request.idTreatment);
+    if (!found) throw new Error(`No existe el tratamiento con id ${request.idTreatment}.`);
+    if (!found.status) throw new Error(`El tratamiento ${found.name} está inactivo.`);
 
-    const applied = store.records.filter((r) => r.idCard === request.idCard && r.idVaccine === request.idVaccine).length;
-    if (applied + 1 > vaccine.dosesRequired) {
-      throw new Error(`El esquema de ${vaccine.name} ya está completo.`);
-    }
-
-    const record = addRecord(store, request.idCard, vaccine, request.applicationDate, {
-      batchNumber: request.batchNumber,
+    const record = addRecord(store, request.idCard, found, request.applicationDate, {
       notes: request.notes,
       idDoctor: request.idDoctor,
     });
@@ -218,16 +234,16 @@ export const vaccinationMock: VaccinationBackend = {
     for (const pet of pets) seedPet(store, pet.idPet);
 
     return store.records
-      .filter((record) => {
-        if (!record.nextDoseDate) return false;
-        const remaining = daysFromToday(record.nextDoseDate);
-        if (remaining === null || remaining > days) return false;
+        .filter((record) => {
+          if (!record.nextDoseDate) return false;
+          const remaining = daysFromToday(record.nextDoseDate);
+          if (remaining === null || remaining > days) return false;
 
-        const superseded = store.records.some(
-          (other) => other.idCard === record.idCard && other.idVaccine === record.idVaccine && other.doseNumber > record.doseNumber,
-        );
-        return !superseded;
-      })
-      .sort((a, b) => (a.nextDoseDate ?? "").localeCompare(b.nextDoseDate ?? ""));
+          const superseded = store.records.some(
+              (other) => other.idCard === record.idCard && other.idTreatment === record.idTreatment && other.applicationNumber > record.applicationNumber,
+          );
+          return !superseded;
+        })
+        .sort((a, b) => (a.nextDoseDate ?? "").localeCompare(b.nextDoseDate ?? ""));
   },
 };

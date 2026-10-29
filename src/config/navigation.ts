@@ -37,5 +37,5 @@ export const NAV_ITEMS: NavItem[] = [
     { name: "Recursos Humanos", href: "/dashboard/users", icon: Users, permission: "usuarios:ver" },
     { name: "Roles y Permisos", href: "/dashboard/roles", icon: ShieldCheck, permission: "roles:ver" },
     { name: "Bitácora de Logs", href: "/dashboard/logs", icon: ScrollText, permission: "logs:ver" },
-    { name: "Reportes", href: "/dashboard/reports", icon: FileBarChart, permission: null, adminOnly: true },
+    { name: "Reportes", href: "/dashboard/reports", icon: FileBarChart, permission: "reportes:ver"},
 ];

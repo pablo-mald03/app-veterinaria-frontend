@@ -10,8 +10,9 @@ import Spinner from "@/components/ui/common/Spinner";
 import { useToast } from "@/components/ui/toast/ToastProvider";
 import VaccinationModal from "@/components/vaccination/VaccinationModal";
 import VaccinationStatusBadge from "@/components/vaccination/VaccinationStatusBadge";
+import { formatCost } from "@/lib/consultation/money";
 import { daysFromToday, describeDue, formatDate } from "@/lib/vaccination/dates";
-import { latestPerVaccine, sortByAppliedDesc } from "@/lib/vaccination/records";
+import { latestPerTreatment, sortByAppliedDesc } from "@/lib/vaccination/records";
 import { createPetVaccination } from "@/services/vaccinationService";
 import { downloadVaccinationCardPdf } from "@/services/vaccinationCardPdfService";
 import type { Mascota } from "@/types/pet";
@@ -33,13 +34,13 @@ export default function PetVaccinationsTab({ mascota, records, loading, error, o
     const [formOpen, setFormOpen] = useState(false);
     const [downloadingPdf, setDownloadingPdf] = useState(false);
 
-    // Solo la última dosis de cada vacuna tiene estado vigente; las anteriores quedaron superadas.
-    const latestIds = new Set(latestPerVaccine(records).map((record) => record.idVaccination));
+    // Solo la última aplicación de cada tratamiento tiene estado vigente; las anteriores quedaron superadas.
+    const latestIds = new Set(latestPerTreatment(records).map((record) => record.idVaccination));
     const rows = sortByAppliedDesc(records);
 
     const handleSave = async (input: VaccinationInput) => {
         try {
-            // El backend exige el id del veterinario que aplicó la vacuna: el del usuario con sesión.
+            // El backend exige el id del veterinario que aplicó el tratamiento: el del usuario con sesión.
             const doctorId = Number(user?.id);
             if (!Number.isInteger(doctorId)) {
                 throw new Error("No se pudo identificar al veterinario de la sesión actual.");
@@ -137,17 +138,16 @@ export default function PetVaccinationsTab({ mascota, records, loading, error, o
                             <li key={record.idVaccination} className="flex items-start justify-between gap-4 py-3">
                                 <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <span className="font-semibold text-text">{record.vaccineName}</span>
+                                        <span className="font-semibold text-text">{record.treatmentName}</span>
                                         <span className="rounded-full bg-mint px-2 py-0.5 text-xs font-semibold text-accent">
-                                            Dosis {record.doseNumber}
+                                            Aplicación {record.applicationNumber}
                                         </span>
                                     </div>
 
                                     <p className="mt-1 text-sm text-text/70">
-                                        Aplicada el {formatDate(record.appliedAt)}
+                                        Aplicado el {formatDate(record.appliedAt)} · {formatCost(record.totalCost)}
                                     </p>
 
-                                    {record.lot && <p className="mt-0.5 text-xs text-text/60">Lote: {record.lot}</p>}
                                     {record.notes && <p className="mt-0.5 text-xs text-text/60">{record.notes}</p>}
                                 </div>
 
@@ -161,8 +161,8 @@ export default function PetVaccinationsTab({ mascota, records, loading, error, o
                                         </>
                                     )}
 
-                                    {isLatest && !record.nextDoseDate && record.schemeComplete && (
-                                        <p className="text-xs font-medium text-accent">Esquema completo</p>
+                                    {isLatest && !record.nextDoseDate && (
+                                        <p className="text-xs font-medium text-accent">Sin próxima aplicación</p>
                                     )}
                                 </div>
                             </li>

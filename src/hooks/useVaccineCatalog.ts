@@ -1,19 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getVaccineCatalog } from "@/services/vaccinationService";
-import type { VaccineResponse } from "@/types/vaccination-api";
+import { getTreatmentCatalog } from "@/services/vaccinationService";
+import type { TreatmentResponse } from "@/types/vaccination-api";
 
 interface CatalogState {
     loaded: boolean;
-    catalog: VaccineResponse[];
+    catalog: TreatmentResponse[];
     error: string | null;
 }
 
 const INITIAL_STATE: CatalogState = { loaded: false, catalog: [], error: null };
 
 /**
- * Catálogo de vacunas. Solo se pide cuando `enabled` es true (por ejemplo, al abrir el formulario).
+ * Catálogo de tratamientos. Solo se pide cuando `enabled` es true (por ejemplo, al abrir el formulario).
  * `reload()` reintenta después de un error.
  */
 export function useVaccineCatalog(enabled: boolean) {
@@ -25,13 +25,13 @@ export function useVaccineCatalog(enabled: boolean) {
 
         let cancelled = false;
 
-        getVaccineCatalog()
+        getTreatmentCatalog()
             .then((catalog) => {
                 if (!cancelled) setState({ loaded: true, catalog, error: null });
             })
             .catch((err: unknown) => {
                 if (cancelled) return;
-                const message = err instanceof Error ? err.message : "No se pudo cargar el catálogo de vacunas.";
+                const message = err instanceof Error ? err.message : "No se pudo cargar el catálogo de tratamientos.";
                 setState({ loaded: true, catalog: [], error: message });
             });
 

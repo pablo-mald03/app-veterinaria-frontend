@@ -16,10 +16,10 @@ export interface FrequentTreatmentReport {
 }
 
 export interface PendingVaccineReport {
-    petId: number;
+    idPet: number;
     petName: string;
     species: string;
-    vaccineName: string;
-    lastDoseNumber: number | null;
+    treatmentName: string;
+    applicationNumber: number | null;
     nextDoseDate: string | null;
 }

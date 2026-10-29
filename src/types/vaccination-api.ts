@@ -1,20 +1,38 @@
-// Contrato REAL del backend para vacunación (rama develop).
+// Contrato REAL del backend para tratamientos y su aplicación a mascotas.
 // Las fechas viajan como "YYYY-MM-DD" (LocalDate de Java).
 // Estos son los datos "crudos"; los modelos que usa la interfaz están en types/vaccination.ts.
 
-// ---- Catálogo de vacunas: GET /vaccines ----
-export interface VaccineResponse {
-  idVaccine: number;
+// ---- Catálogo de tratamientos: GET /treatments ----
+
+/** Producto que consume un tratamiento en cada aplicación. */
+export interface TreatmentProduct {
+  productId: number;
+  quantity: number;
+}
+
+export interface TreatmentResponse {
+  idTreatment: number;
   name: string;
   description: string;
-  /** Texto libre con la(s) especie(s), ej. "PERRO" o "PERRO, GATO". */
-  species: string;
-  /** Dosis del esquema inicial. */
-  dosesRequired: number;
-  /** Días entre una dosis y la siguiente. */
+  /** Días entre una aplicación y la siguiente. Sin intervalo = aplicación única (no hay próxima fecha). */
   intervalDays: number | null;
-  /** true = vacuna activa en el catálogo. */
+  /** true = tratamiento activo en el catálogo. */
   status: boolean;
+  /** Especies a las que aplica, ej. ["PERRO", "GATO"]. */
+  species: string[];
+  /** Productos (con su cantidad) que se descuentan del inventario en cada aplicación. */
+  products: TreatmentProduct[];
+  /** Costo estimado de una aplicación, calculado por el backend a partir de los productos. */
+  estimatedCost: number;
+}
+
+/** POST /treatments */
+export interface TreatmentRequest {
+  name: string;
+  description: string;
+  intervalDays: number | null;
+  species: string[];
+  products: TreatmentProduct[];
 }
 
 // ---- Carnet (1 por mascota) ----
@@ -27,30 +45,39 @@ export interface VaccinationCardResponse {
   status: boolean;
 }
 
-// ---- Dosis aplicadas ----
+// ---- Aplicaciones de tratamientos ----
 
-/** POST /vaccination-records — el backend calcula doseNumber y nextDoseDate. */
+/** POST /vaccination-records — el backend calcula applicationNumber, nextDoseDate y los lotes/costos. */
 export interface VaccinationRecordRequest {
   idCard: number;
-  idVaccine: number;
+  idTreatment: number;
   idDoctor: number;
   applicationDate: string;
-  batchNumber?: string;
   notes?: string;
+}
+
+/** Producto descontado del inventario en una aplicación (con el lote del que salió). */
+export interface VaccinationRecordItem {
+  productId: number;
+  batchId: number;
+  quantity: number;
+  unitCost: number;
 }
 
 /** GET /vaccination-records/{idCard} y GET /vaccination-records/pending?days=N */
 export interface VaccinationRecordResponse {
   idRecord: number;
   idCard: number;
-  idVaccine: number;
+  idTreatment: number;
   idDoctor: number;
-  doseNumber: number;
+  /** Número de aplicación de ese tratamiento a esa mascota (1, 2, 3...). */
+  applicationNumber: number;
   applicationDate: string;
-  /** null cuando ya se aplicó la última dosis del esquema. */
+  /** null cuando el tratamiento no tiene intervalo (no se repite). */
   nextDoseDate: string | null;
-  batchNumber: string | null;
+  totalCost: number;
   notes: string | null;
+  items: VaccinationRecordItem[];
   // Campos que hoy el backend NO envía en /pending. Si los agrega, el frontend los usa
   // directamente y deja de consultar cada carnet para averiguar la mascota.
   idPet?: number;
